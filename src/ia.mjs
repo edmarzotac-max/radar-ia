@@ -5,8 +5,17 @@
    a 5, a chave do assunto (para juntar a mesma notícia vinda de vários
    lugares) e etiquetas. Nunca copia frases da fonte. */
 
-const ENDERECO = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
-const MODELOS = [process.env.GEMINI_MODELO || "gemini-flash-latest", "gemini-flash-lite-latest"];
+// Trocar de IA (ex.: ChatGPT) sem mexer no código: IA_ENDERECO, IA_CHAVE e IA_MODELO.
+// Para a OpenAI: IA_ENDERECO=https://api.openai.com/v1/chat/completions
+const ENDERECO = process.env.IA_ENDERECO || "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+const CHAVE = () => process.env.IA_CHAVE || process.env.GEMINI_CHAVE;
+// Reservas: se o modelo mais novo estiver sobrecarregado (erro 503), tenta os anteriores.
+const MODELOS = process.env.IA_MODELO ? [process.env.IA_MODELO] : [
+  process.env.GEMINI_MODELO || "gemini-flash-latest",
+  "gemini-3.5-flash",
+  "gemini-flash-lite-latest",
+  "gemini-2.5-flash",
+];
 const LOTE = 8;
 const PAUSA_MS = 6500; // nível gratuito: poucos pedidos por minuto
 
@@ -35,7 +44,7 @@ async function chamar(modelo, conteudo) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.GEMINI_CHAVE}`,
+      Authorization: `Bearer ${CHAVE()}`,
     },
     body: JSON.stringify({
       model: modelo,
@@ -68,16 +77,16 @@ async function chamarComReserva(conteudo) {
         return await chamar(modelo, conteudo);
       } catch (e) {
         ultimoErro = e;
-        if (e.status === 429) await espera(20_000);
-        else if (e.status === 404 || e.status === 400) break; // modelo não existe: tenta o próximo
-        else await espera(3000);
+        if (e.status === 404 || e.status === 400) break; // modelo não existe: tenta o próximo
+        // 429 = limite por minuto; 503 = Google sobrecarregado (costuma passar em segundos)
+        await espera(e.status === 429 ? 20_000 : 8000 * (tentativa + 1));
       }
     }
   }
   throw ultimoErro;
 }
 
-export const iaLigada = () => !!process.env.GEMINI_CHAVE;
+export const iaLigada = () => !!CHAVE();
 
 /* itens: lista da coleta. assuntos: [{ chave, titulo }] das últimas horas. */
 export async function redigir(itens, assuntos = []) {

@@ -37,6 +37,9 @@ jobs:
           RADAR_TOKEN: ${{ secrets.RADAR_TOKEN }}
           GEMINI_CHAVE: ${{ secrets.GEMINI_CHAVE }}
           GEMINI_MODELO: ${{ vars.GEMINI_MODELO }}
+          IA_ENDERECO: ${{ vars.IA_ENDERECO }}
+          IA_MODELO: ${{ vars.IA_MODELO }}
+          IA_CHAVE: ${{ secrets.IA_CHAVE }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CANAL: ${{ secrets.TELEGRAM_CANAL }}
           TELEGRAM_MEU_CHAT: ${{ secrets.TELEGRAM_MEU_CHAT }}
