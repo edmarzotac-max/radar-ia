@@ -19,7 +19,8 @@ As chaves você mesmo cola: eu não digito nem leio senhas e chaves.
 Abrir supabase.com → projeto **edmar_supa** → SQL Editor → colar o arquivo
 `edmarcastro-site/supabase/migrations/20261117120000_radar_noticias.sql` → Run.
 
-### 2. Robô e canal do Telegram
+### 2. Robô e canal do Telegram (DEIXADO PARA DEPOIS em 17/11)
+Pule este passo por enquanto. Sem os Secrets do Telegram, o radar só alimenta o portal: não posta em canal nenhum e não manda alerta. Quando houver o que oferecer no canal, é só fazer os passos abaixo e cadastrar os 3 Secrets do Telegram.
 1. No Telegram, falar com **@BotFather** → `/newbot` → dar um nome (ex.: Radar IA) e um usuário terminado em `bot`. Ele devolve o **token do robô**.
 2. Criar um **canal público** (ex.: `@radaria_br`). Em Administradores, adicionar o robô com permissão de publicar.
 3. Mandar um "oi" para o seu robô (para ele poder te escrever no privado).
