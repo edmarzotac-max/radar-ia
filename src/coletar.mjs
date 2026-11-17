@@ -126,6 +126,7 @@ async function lerFeed(fonte) {
       imagem: imagemDoItem(it),
       oficial: !!fonte.oficial,
       comunidade: !!fonte.comunidade,
+      categoria: fonte.categoria ?? "ia",
     });
   }
   return saida.slice(0, 25);

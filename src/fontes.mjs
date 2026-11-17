@@ -1,8 +1,10 @@
 /* Onde o radar procura. Para incluir ou tirar uma fonte, mexa só aqui.
 
+   Categorias do portal: ia, tecnologia, games, internet. "categoria" é só
+   uma dica para a IA, que decide a categoria final de cada notícia.
+
    tipo "feed": RSS ou Atom.
-   filtrar: true = o site fala de tudo (tecnologia em geral); só entra o que
-   tiver palavra de IA no título ou no resumo. */
+   filtrar: true = a fonte fala de tudo; só entra o que tiver palavra de IA. */
 
 export const FEEDS = [
   // Oficiais
@@ -19,11 +21,20 @@ export const FEEDS = [
   { nome: "Simon Willison", url: "https://simonwillison.net/atom/everything/", filtrar: true },
   { nome: "Reddit r/ClaudeAI", url: "https://www.reddit.com/r/ClaudeAI/top/.rss?t=day", comunidade: true },
 
-  // Imprensa brasileira (falam de tudo: filtrar)
-  { nome: "Tecnoblog", url: "https://tecnoblog.net/feed/", filtrar: true },
-  { nome: "Olhar Digital", url: "https://olhardigital.com.br/feed/", filtrar: true },
-  { nome: "Canaltech", url: "https://canaltech.com.br/rss/", filtrar: true },
-  { nome: "Tecmundo", url: "https://rss.tecmundo.com.br/feed", filtrar: true },
+  // Tecnologia, internet e games (a IA decide a categoria de cada notícia)
+  { nome: "The Verge", url: "https://www.theverge.com/rss/tech/index.xml", categoria: "tecnologia" },
+  { nome: "The Verge", url: "https://www.theverge.com/rss/games/index.xml", categoria: "games" },
+  { nome: "g1 Tecnologia", url: "https://g1.globo.com/rss/g1/tecnologia/", categoria: "tecnologia" },
+  { nome: "TechTudo", url: "https://www.techtudo.com.br/rss/techtudo/", categoria: "tecnologia" },
+  { nome: "Tecnoblog", url: "https://tecnoblog.net/feed/", categoria: "tecnologia" },
+  { nome: "Olhar Digital", url: "https://olhardigital.com.br/feed/", categoria: "tecnologia" },
+  { nome: "Canaltech", url: "https://canaltech.com.br/rss/", categoria: "tecnologia" },
+  { nome: "Tecmundo", url: "https://rss.tecmundo.com.br/feed", categoria: "tecnologia" },
+  { nome: "Meio Bit", url: "https://meiobit.com/feed/", categoria: "tecnologia" },
+  { nome: "Showmetech", url: "https://www.showmetech.com.br/feed/", categoria: "tecnologia" },
+  { nome: "Adrenaline", url: "https://adrenaline.com.br/feed/", categoria: "games" },
+  { nome: "IGN Brasil", url: "https://br.ign.com/feed.xml", categoria: "games" },
+  { nome: "Eurogamer", url: "https://www.eurogamer.pt/feed", categoria: "games" },
 ];
 
 /* A Anthropic não tem RSS: o radar lê a página de notícias. */

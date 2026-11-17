@@ -44,6 +44,7 @@ globalThis.fetch = async (url, opts = {}) => {
               importancia: it.tipo === "lancamento" ? 4 : 3,
               assunto: /openai/i.test(it.titulo_original + it.fonte) ? "assunto-openai-teste" : `item-${it.id}-${it.fonte}`.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
               tags: ["teste"],
+              categoria: it.editoria_provavel,
             })),
           }),
         },

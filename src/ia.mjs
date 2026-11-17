@@ -12,17 +12,18 @@ const PAUSA_MS = 6500; // nível gratuito: poucos pedidos por minuto
 
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const INSTRUCOES = `Você é o editor do Radar IA, um portal brasileiro de notícias sobre inteligência artificial, com foco em Claude, Claude Code, agentes, ferramentas de IA e lançamentos de modelos. O público são brasileiros que trabalham com tecnologia e negócios e querem saber o que mudou e o que dá para usar.
+const INSTRUCOES = `Você é o editor de um portal brasileiro de notícias de tecnologia com quatro editorias: Inteligência Artificial (a principal, com foco em Claude, Claude Code, agentes, ferramentas e lançamentos de modelos), Tecnologia, Games e Internet. O público são brasileiros que trabalham com tecnologia e negócios ou gostam de games e querem saber o que mudou.
 
 Para cada item recebido, devolva:
 - "id": o mesmo id recebido.
-- "relevante": true só se o assunto principal for inteligência artificial (modelos, empresas de IA, ferramentas, agentes, pesquisa, regulação de IA, repositórios de IA). Promoção, review de celular, jogo, política sem IA, item sem informação ou post pessoal de fórum sem novidade = false.
+- "relevante": true se for notícia de verdade de uma das quatro editorias. false para: oferta, cupom, desconto, "melhores preços", lista de compras, guia de presente, horóscopo, fofoca, política ou esporte sem relação com tecnologia, item sem informação, post pessoal de fórum sem novidade, matéria patrocinada.
+- "categoria": "ia" (inteligência artificial, modelos, agentes, ferramentas e empresas de IA, repositórios de IA), "tecnologia" (celulares, computadores, chips, carros elétricos, ciência e empresas de tecnologia), "games" (jogos, consoles, lançamentos, indústria de games) ou "internet" (redes sociais, aplicativos, streaming, golpes e segurança na internet, criadores de conteúdo, regulação da internet). Se a notícia é de games ou tecnologia mas o centro é IA, use "ia".
 - "titulo": título jornalístico em português do Brasil, direto, até 90 caracteres, sem clickbait, sem emoji, sem ponto final.
 - "resumo": 2 ou 3 frases em português do Brasil, com suas próprias palavras (NUNCA copie frases da fonte), dizendo o que aconteceu com os fatos concretos (quem, o quê, números). Até 380 caracteres.
 - "porque": 1 frase dizendo por que isso importa para quem usa IA no trabalho. Até 200 caracteres.
-- "importancia": 1 a 5. 5 = lançamento de modelo grande, mudança que afeta muita gente ou notícia que vai dominar o dia; 4 = novidade relevante de empresa grande ou ferramenta muito útil; 3 = notícia boa do setor; 2 = nicho; 1 = quase irrelevante. Versão de manutenção de software (correções pequenas) = 2. Repositório do GitHub em alta = 3, ou 4 se for muito útil para quem usa Claude/agentes.
+- "importancia": 1 a 5, dentro da editoria. 5 = lançamento de modelo grande, console ou jogo muito esperado, mudança que afeta muita gente ou notícia que vai dominar o dia; 4 = novidade relevante de empresa grande ou ferramenta muito útil; 3 = notícia boa do setor; 2 = nicho; 1 = quase irrelevante. Versão de manutenção de software (correções pequenas) = 2. Repositório do GitHub em alta = 3, ou 4 se for muito útil para quem usa Claude/agentes.
 - "assunto": chave curta em inglês, minúsculas e hífens, até 6 palavras, que identifica o FATO (ex.: "openai-launches-gpt-6", "anthropic-claude-code-2-2-release"). Se o item for sobre o mesmo fato de uma das chaves existentes informadas, repita a chave existente exatamente igual.
-- "tags": de 1 a 3 etiquetas curtas em português, minúsculas (ex.: "claude", "openai", "agentes", "github", "regulação").
+- "tags": de 1 a 3 etiquetas curtas em português, minúsculas (ex.: "claude", "openai", "agentes", "github", "playstation", "whatsapp").
 
 Para versões de software (tipo lancamento), o título deve dizer o nome da ferramenta e a versão, e o resumo deve dizer as mudanças mais úteis em linguagem simples.
 Para repositórios do GitHub (tipo github), diga o que o projeto faz e para quem serve.
@@ -93,6 +94,7 @@ export async function redigir(itens, assuntos = []) {
         lote.map((it, k) => ({
           id: i + k,
           tipo: it.tipo,
+          editoria_provavel: it.categoria ?? "ia",
           fonte: it.fonte + (it.oficial ? " (fonte oficial)" : it.comunidade ? " (comunidade)" : ""),
           titulo_original: it.titulo,
           texto_original: it.texto.slice(0, 1500),

@@ -21,8 +21,8 @@ try {
 const TESTE = process.argv.includes("--teste");
 const SEMEAR = process.argv.includes("--semear");
 const SITE = (process.env.SITE_URL || "https://edmarcastro.com.br").replace(/\/$/, "");
-const MAX_ANALISE = SEMEAR ? 30 : 40; // itens novos analisados por rodada
-const MAX_SEMEAR = 15; // notícias publicadas no portal na primeira vez
+const MAX_ANALISE = 40; // itens novos analisados por rodada
+const MAX_SEMEAR = 45; // notícias publicadas no portal na primeira vez (até 3 por fonte)
 const MAX_CANAL = 4; // posts no canal por rodada
 const FONTES_SUPER = 3; // fontes diferentes no mesmo assunto = super notícia
 const HORAS_ASSUNTO = 6;
@@ -71,7 +71,15 @@ export async function principal() {
   console.log(`  novos: ${novos.length}`);
 
   if (SEMEAR) {
-    const publicar = iaLigada() ? novos.filter((i) => !i.enriquecer).slice(0, MAX_SEMEAR) : [];
+    // até 3 das mais recentes de cada fonte, para todas as editorias começarem cheias
+    const porFonte = new Map();
+    for (const i of [...novos].sort((a, b) => Date.parse(b.publicado ?? 0) - Date.parse(a.publicado ?? 0))) {
+      if (i.enriquecer) continue;
+      const k = `${i.fonte}|${i.categoria ?? ""}|${i.tipo}`;
+      if (!porFonte.has(k)) porFonte.set(k, []);
+      if (porFonte.get(k).length < 3) porFonte.get(k).push(i);
+    }
+    const publicar = iaLigada() ? [...porFonte.values()].flat().slice(0, MAX_SEMEAR) : [];
     const analisados = await processar(publicar);
     if (!TESTE) {
       // marca TUDO como visto (inclusive o que não foi publicado)
@@ -159,6 +167,7 @@ async function processar(lista) {
     registros.push({
       slug: slugify(titulo, it.url),
       kind: it.tipo,
+      category: ["ia", "tecnologia", "games", "internet"].includes(r.categoria) ? r.categoria : (it.categoria ?? "ia"),
       title: titulo,
       summary: limitar(r.resumo, 1100),
       why: limitar(r.porque, 560),
@@ -225,14 +234,15 @@ async function superNoticiaETelegram(inseridos) {
 
   if (!telegramLigado()) return;
 
-  // Canal: super notícias primeiro, depois as novas com nota 4 ou 5
+  // Canal: super notícias primeiro, depois as novas de IA com nota 4 ou 5 e
+  // as de tecnologia, games e internet só com nota 5 (o canal é de IA)
   const assuntosPostados = new Set(rec.filter((n) => n.telegram_at && n.topic_key).map((n) => n.topic_key));
   const fila = [];
   for (const s of novasSuper) {
     if (!s.capa.telegram_at) fila.push({ n: s.capa, superNoticia: true, fontes: s.fontes });
   }
   const novosRec = rec
-    .filter((n) => idsNovos.has(n.id) && n.importance >= 4 && !n.telegram_at)
+    .filter((n) => idsNovos.has(n.id) && !n.telegram_at && n.importance >= (n.category === "ia" ? 4 : 5))
     .sort((a, b) => b.importance - a.importance);
   for (const n of novosRec) {
     if (fila.some((f) => f.n.id === n.id)) continue;

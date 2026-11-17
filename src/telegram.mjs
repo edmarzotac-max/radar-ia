@@ -32,7 +32,7 @@ export function mensagem(n, linkPortal, { superNoticia = false, fontes = 1 } = {
   const tags = (n.tags ?? []).map((t) => `#${t.replace(/[^\p{L}\p{N}_]/gu, "")}`).filter((t) => t.length > 1).join(" ");
   return (
     `${topo}<b>${esc(n.title)}</b>\n\n${esc(n.summary)}${porque}\n\n` +
-    `<a href="${esc(linkPortal)}">Ler no Radar IA</a> · <a href="${esc(n.source_url)}">Fonte: ${esc(n.source_name)}</a>` +
+    `<a href="${esc(linkPortal)}">Ler a matéria</a> · <a href="${esc(n.source_url)}">Fonte: ${esc(n.source_name)}</a>` +
     (tags ? `\n\n${tags}` : "")
   );
 }
