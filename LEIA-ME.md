@@ -1,6 +1,6 @@
 # Radar IA
 
-Raspador de notícias de inteligência artificial, tecnologia, games e internet. A cada 15 minutos, no GitHub Actions (grátis em repositório público):
+Raspador de notícias de inteligência artificial, tecnologia, games e internet. A cada 30 minutos, no GitHub Actions (grátis em repositório público):
 
 1. lê 23 feeds de notícias, a página da Anthropic, o Hacker News, as versões novas de 6 repositórios (Claude Code, Codex, Gemini CLI...) e os repositórios de IA novos que estão subindo em estrelas;
 2. joga fora o que já viu;
@@ -44,7 +44,7 @@ aistudio.google.com/apikey → Create API key.
 | `TELEGRAM_MEU_CHAT` | o seu ID do passo 2.4 |
 
 ### 5. Primeira rodada
-Aba **Actions** → Radar IA → Run workflow → modo `semear`. Ela marca tudo o que já existe como visto e publica até 45 das mais recentes (até 3 por fonte) no portal, sem mandar nada para o Telegram. Depois disso o radar roda sozinho a cada 15 minutos.
+Aba **Actions** → Radar IA → Run workflow → modo `semear`. Ela marca tudo o que já existe como visto e publica até 45 das mais recentes (até 3 por fonte) no portal, sem mandar nada para o Telegram. Depois disso o radar roda sozinho a cada 30 minutos.
 
 ### OpenBot (painel no seu computador)
 O GitHub Actions é quem roda sozinho, 24 horas. No OpenBot fica um agente para você rodar na hora, testar e ver o que entrou.
@@ -53,7 +53,7 @@ O GitHub Actions é quem roda sozinho, 24 horas. No OpenBot fica um agente para 
    > Copie a pasta `C:\Users\EusouoEd\Desktop\PROJETOS\radar-ia\openbot\radar-ia` para o seu workspace e registre como skill com create_skill. Depois trabalhe na pasta `C:\Users\EusouoEd\Desktop\PROJETOS\radar-ia`.
 3. Depois é só pedir: "roda o radar agora", "testa as fontes", "o que entrou hoje?".
 
-Não crie agendamento no OpenBot para o radar: o GitHub já roda a cada 15 minutos, e os posts no Telegram sairiam em dobro.
+Não crie agendamento no OpenBot para o radar: o GitHub já roda a cada 30 minutos, e os posts no Telegram sairiam em dobro.
 
 ### 6. Site
 Colocar o link do canal em `edmarcastro-site/src/lib/news.ts` (`TELEGRAM_URL`) e publicar o site. Os botões "Receber no Telegram" só aparecem depois disso.

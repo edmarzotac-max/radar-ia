@@ -26,6 +26,7 @@ const MAX_SEMEAR = 45; // notícias publicadas no portal na primeira vez (até 3
 const MAX_CANAL = 4; // posts no canal por rodada
 const FONTES_SUPER = 3; // fontes diferentes no mesmo assunto = super notícia
 const HORAS_ASSUNTO = 6;
+const NOTA_MINIMA = 3; // abaixo disso a notícia não entra no portal
 
 const linkPortal = (slug) => `${SITE}/noticias/${slug}`;
 
@@ -163,6 +164,8 @@ async function processar(lista) {
     if (!r) return; // IA falhou: não marca como visto, tenta de novo depois
     vistos.push(it.url);
     if (!r.relevante || !r.titulo || !r.resumo) return;
+    // o portal é curado: nota 1 ou 2 fica de fora (já conta como visto)
+    if (Math.round(Number(r.importancia) || 3) < NOTA_MINIMA) return;
     const titulo = limitar(r.titulo, 200);
     registros.push({
       slug: slugify(titulo, it.url),

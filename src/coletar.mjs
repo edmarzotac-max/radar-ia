@@ -6,7 +6,7 @@
 
 import { XMLParser } from "fast-xml-parser";
 import {
-  ANTHROPIC, ESTRELAS_MINIMAS, FEEDS, HACKER_NEWS, PALAVRAS_IA, REPOS_VIGIADOS, TOPICOS_GITHUB,
+  ANTHROPIC, BUSCAS_SKILLS, ESTRELAS_MINIMAS, ESTRELAS_MINIMAS_SKILLS, FEEDS, HACKER_NEWS, PALAVRAS_IA, PALAVRAS_NICHO, REPOS_VIGIADOS, TOPICOS_GITHUB,
 } from "./fontes.mjs";
 
 const AGENTE = "Mozilla/5.0 (compatible; RadarIA/1.0; +https://edmarcastro.com.br/noticias)";
@@ -91,10 +91,12 @@ function imagemDoItem(it) {
   return m?.[1] ?? "";
 }
 
-export function falaDeIA(s) {
+function combina(s, palavras) {
   const t = ` ${String(s).toLowerCase().replace(/[.,:;!?()"'“”‘’]/g, " ")} `;
-  return PALAVRAS_IA.some((p) => t.includes(p));
+  return palavras.some((p) => t.includes(p));
 }
+export const falaDeIA = (s) => combina(s, PALAVRAS_IA);
+export const bateComNicho = (s) => combina(s, PALAVRAS_NICHO);
 
 function recente(data, horas) {
   const t = Date.parse(data);
@@ -115,7 +117,10 @@ async function lerFeed(fonte) {
     if (!url || !titulo) continue;
     if (!recente(publicado, HORAS_FEED)) continue;
     const resumo = limparHtml(corpo, 900);
-    if (fonte.filtrar && !falaDeIA(`${titulo} ${resumo}`)) continue;
+    if (fonte.incluir && !fonte.incluir.test(`${titulo} ${resumo}`)) continue;
+    if (fonte.excluir && fonte.excluir.test(titulo)) continue;
+    if (fonte.filtrar === "nicho" && !bateComNicho(`${titulo} ${resumo}`)) continue;
+    if ((fonte.filtrar === "ia" || fonte.filtrar === true) && !falaDeIA(`${titulo} ${resumo}`)) continue;
     saida.push({
       url,
       titulo,
@@ -175,20 +180,35 @@ async function lerAnthropic() {
 }
 
 async function lerHackerNews() {
-  const r = await buscar("https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=60", { json: true });
-  return lista(r.hits)
-    .filter((h) => (h.points ?? 0) >= HACKER_NEWS.pontosMinimos && falaDeIA(h.title))
-    .map((h) => ({
-      url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,
-      titulo: limparHtml(h.title, 220),
-      texto: `Em alta no Hacker News: ${h.points} pontos, ${h.num_comments ?? 0} comentários.`,
-      fonte: HACKER_NEWS.nome,
-      tipo: "noticia",
-      publicado: h.created_at ?? null,
-      imagem: "",
-      oficial: false,
-      comunidade: true,
-    }));
+  const desde = Math.floor(Date.now() / 1000) - 48 * 3600;
+  const vistos = new Map();
+  for (const busca of HACKER_NEWS.buscas) {
+    try {
+      const q = encodeURIComponent(busca);
+      const r = await buscar(
+        `https://hn.algolia.com/api/v1/search?query=${q}&tags=story&numericFilters=points>=${HACKER_NEWS.pontosMinimos},created_at_i>${desde}&hitsPerPage=10`,
+        { json: true },
+      );
+      for (const h of lista(r.hits)) {
+        const url = h.url || `https://news.ycombinator.com/item?id=${h.objectID}`;
+        if (vistos.has(url)) continue;
+        vistos.set(url, {
+          url,
+          titulo: limparHtml(h.title, 220),
+          texto: `Discutido no Hacker News (busca: ${busca}): ${h.points} pontos, ${h.num_comments ?? 0} comentários.`,
+          fonte: HACKER_NEWS.nome,
+          tipo: "noticia",
+          publicado: h.created_at ?? null,
+          imagem: "",
+          oficial: false,
+          comunidade: true,
+        });
+      }
+    } catch (e) {
+      console.warn(`  ! hacker news (${busca}): ${e.message}`);
+    }
+  }
+  return [...vistos.values()];
 }
 
 function cabecalhoGitHub() {
@@ -265,6 +285,46 @@ async function lerEmAlta() {
   return [...vistos.values()];
 }
 
+/* Caça-skills: repositórios novos de skills de design, vídeo e motion. */
+async function lerSkills() {
+  const desde = new Date(Date.now() - 14 * 86400_000).toISOString().slice(0, 10);
+  const vistos = new Map();
+  for (const busca of BUSCAS_SKILLS) {
+    try {
+      const q = encodeURIComponent(`${busca} in:name,description created:>${desde} stars:>=${ESTRELAS_MINIMAS_SKILLS}`);
+      const r = await buscar(
+        `https://api.github.com/search/repositories?q=${q}&sort=stars&order=desc&per_page=10`,
+        { json: true, headers: cabecalhoGitHub() },
+      );
+      for (const repo of lista(r.items)) {
+        if (vistos.has(repo.html_url) || repo.fork) continue;
+        vistos.set(repo.html_url, {
+          url: repo.html_url,
+          titulo: repo.full_name,
+          texto: limparHtml(
+            `SKILL encontrada no GitHub (busca: ${busca}). ${repo.description ?? ""}. ` +
+              `${repo.stargazers_count} estrelas em ${Math.max(1, Math.round((Date.now() - Date.parse(repo.created_at)) / 86400_000))} dia(s). ` +
+              `Linguagem: ${repo.language ?? "não informada"}. Tópicos: ${lista(repo.topics).join(", ")}.`,
+            900,
+          ),
+          fonte: "GitHub",
+          tipo: "github",
+          categoria: "ia",
+          publicado: repo.created_at,
+          imagem: `https://opengraph.githubassets.com/1/${repo.full_name}`,
+          oficial: false,
+          comunidade: true,
+          estrelas: repo.stargazers_count,
+        });
+      }
+    } catch (e) {
+      console.warn(`  ! skills (${busca}): ${e.message}`);
+    }
+    await new Promise((r) => setTimeout(r, process.env.GITHUB_TOKEN ? 2500 : 7000));
+  }
+  return [...vistos.values()];
+}
+
 /* Tira rastreadores do link para o mesmo artigo não entrar duas vezes. */
 export function normalizarUrl(u) {
   try {
@@ -286,6 +346,7 @@ export async function coletarTudo() {
     { nome: "Hacker News", fn: lerHackerNews },
     { nome: "GitHub (versões)", fn: lerReleases },
     { nome: "GitHub (em alta)", fn: lerEmAlta },
+    { nome: "GitHub (skills)", fn: lerSkills },
   ];
   const resultados = await Promise.allSettled(tarefas.map((t) => t.fn()));
   const itens = [];

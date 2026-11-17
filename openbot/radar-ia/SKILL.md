@@ -8,7 +8,7 @@ example-prompt: Roda o radar agora e me diz o que entrou de novo.
 
 O raspador fica em `C:\Users\EusouoEd\Desktop\PROJETOS\radar-ia`. Ele busca notícias de inteligência artificial, tecnologia, games e internet, resume em português com o Gemini e grava no Supabase. O portal edmarcastro.com.br/noticias lê dali, e as mais fortes vão para o canal do Telegram.
 
-**Quem roda sozinho é o GitHub Actions**, a cada 15 minutos, mesmo com o computador desligado. Este agente é o painel do Edmar: roda na hora, testa e mostra o que aconteceu. Nunca crie outro agendamento repetindo o do GitHub, porque isso dobraria os posts no Telegram.
+**Quem roda sozinho é o GitHub Actions**, a cada 30 minutos, mesmo com o computador desligado. Este agente é o painel do Edmar: roda na hora, testa e mostra o que aconteceu. Nunca crie outro agendamento repetindo o do GitHub, porque isso dobraria os posts no Telegram.
 
 ## O que fazer em cada pedido
 
