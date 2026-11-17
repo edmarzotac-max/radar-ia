@@ -1,0 +1,63 @@
+name: Radar IA
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: "normal, teste ou semear"
+        default: normal
+
+permissions:
+  contents: write
+
+concurrency:
+  group: radar
+  cancel-in-progress: false
+
+jobs:
+  rodar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Rodada do radar
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_CHAVE_PUBLICA: ${{ secrets.SUPABASE_CHAVE_PUBLICA }}
+          RADAR_TOKEN: ${{ secrets.RADAR_TOKEN }}
+          GEMINI_CHAVE: ${{ secrets.GEMINI_CHAVE }}
+          GEMINI_MODELO: ${{ vars.GEMINI_MODELO }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CANAL: ${{ secrets.TELEGRAM_CANAL }}
+          TELEGRAM_MEU_CHAT: ${{ secrets.TELEGRAM_MEU_CHAT }}
+          GITHUB_TOKEN: ${{ github.token }}
+          SITE_URL: https://edmarcastro.com.br
+        run: |
+          case "${{ github.event.inputs.modo }}" in
+            teste) node src/rodar.mjs --teste ;;
+            semear) node src/rodar.mjs --semear ;;
+            *) node src/rodar.mjs ;;
+          esac
+
+      # O GitHub desliga agendamentos de repositórios parados há 60 dias.
+      # Se o último commit tiver mais de 45 dias, faz um commit vazio.
+      - name: Manter o agendamento ativo
+        run: |
+          ultimo=$(git log -1 --format=%ct)
+          agora=$(date +%s)
+          if [ $(( (agora - ultimo) / 86400 )) -ge 45 ]; then
+            git config user.name "radar-ia"
+            git config user.email "radar-ia@users.noreply.github.com"
+            git commit --allow-empty -m "manter o radar ativo"
+            git push
+          fi

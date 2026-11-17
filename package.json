@@ -1,0 +1,17 @@
+{
+  "name": "radar-ia",
+  "private": true,
+  "type": "module",
+  "description": "Raspador de notícias de IA e do GitHub: resume em português, publica no portal e no Telegram.",
+  "scripts": {
+    "rodar": "node src/rodar.mjs",
+    "teste": "node src/rodar.mjs --teste",
+    "semear": "node src/rodar.mjs --semear"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.12.1"
+  }
+}
