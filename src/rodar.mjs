@@ -64,7 +64,7 @@ export async function principal() {
   console.log(`  banco: ${bancoLigado() ? "ok" : "desligado"} · IA: ${iaLigada() ? "ok" : "desligada"} · canal: ${telegramLigado() ? "ok" : "desligado"} · alerta: ${alertaLigado() ? "ok" : "desligado"}`);
 
   if (!TESTE && !bancoLigado()) throw new Error("Faltam SUPABASE_URL, SUPABASE_CHAVE_PUBLICA ou RADAR_TOKEN.");
-  if (!TESTE && !SEMEAR && !iaLigada()) throw new Error("Falta GEMINI_CHAVE: sem ela o radar não escreve em português.");
+  if (!TESTE && !SEMEAR && !iaLigada()) throw new Error("Falta OPENAI_CHAVE (ou GEMINI_CHAVE): sem ela o radar não escreve em português.");
 
   // 1. Coleta
   const { itens, relatorio } = await coletarTudo();
@@ -139,7 +139,7 @@ export async function principal() {
     }
   }
   if (novasSkills.length) console.log(`  skills na fila do painel: ${naFila}`);
-  if (usoReserva.pedidos) console.log(`  IA paga (reserva) usada em ${usoReserva.pedidos} pedido(s)`);
+  if (usoReserva.pedidos) console.log(`  pedidos à IA paga nesta rodada: ${usoReserva.pedidos}`);
   console.log(`  fim em ${Math.round((Date.now() - inicio) / 1000)} s`);
 }
 

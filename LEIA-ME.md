@@ -4,7 +4,7 @@ Raspador de notícias de inteligência artificial, tecnologia, games e internet.
 
 1. lê 23 feeds de notícias, a página da Anthropic, o Hacker News, as versões novas de 6 repositórios (Claude Code, Codex, Gemini CLI...) e os repositórios de IA novos que estão subindo em estrelas;
 2. joga fora o que já viu;
-3. o Gemini (API grátis) descarta oferta e fofoca, escolhe a editoria (IA, tecnologia, games ou internet) e escreve título, resumo e "por que importa" em português, com palavras próprias;
+3. a IA (OpenAI `gpt-5.4-mini`; sem a chave dela, o Gemini grátis) descarta oferta e fofoca, escolhe a editoria (IA, tecnologia, games ou internet) e escreve título, resumo e "por que importa" em português, com palavras próprias;
 4. grava no Supabase do site → aparece em edmarcastro.com.br/noticias;
 5. posta no canal do Telegram as de IA com nota 4 ou 5 e as das outras editorias só com nota 5 (no máximo 4 por rodada);
 6. **skills**: as skills novas de design, vídeo, motion e automação achadas no GitHub NÃO vão direto para o portal. O radar lê o README de cada uma, a IA escreve o rascunho da página (o que faz, para quem, como instalar, como usar) e põe na fila do painel `edmarcastro.com.br/admin/skills` (mesmo login das métricas). Lá o Edmar testa e escolhe Descartar ou Publicar (nota, uma frase e, se quiser, o vídeo do teste). Publicada, a página vai para `/skills/<nome>`, entra no sitemap e o Bing é avisado na hora;
@@ -41,7 +41,7 @@ aistudio.google.com/apikey → Create API key.
 | `SUPABASE_CHAVE_PUBLICA` | a chave publicável do Supabase (a mesma `SUPABASE_PUBLISHABLE_KEY` do `.env` do site) |
 | `RADAR_TOKEN` | o código do arquivo `ACESSO-RADAR.txt` (nesta pasta, não vai para o GitHub) |
 | `GEMINI_CHAVE` | a chave do passo 3 |
-| `OPENAI_CHAVE` | (opcional, paga) chave da OpenAI: só é usada quando o Gemini grátis falha. Modelo padrão `gpt-5.4-mini`; para trocar, crie a variável `OPENAI_MODELO` |
+| `OPENAI_CHAVE` | chave da OpenAI (paga): é a IA principal desde 18/11. Modelo padrão `gpt-5.4-mini`; para trocar, crie a variável `OPENAI_MODELO`. Sem ela, o radar volta para o Gemini grátis |
 | `TELEGRAM_BOT_TOKEN` | o token do passo 2.1 |
 | `TELEGRAM_CANAL` | o @ do canal, ex.: `@radaria_br` |
 | `TELEGRAM_MEU_CHAT` | o seu ID do passo 2.4 |

@@ -1,34 +1,35 @@
-/* Redação com o Gemini (API gratuita do Google, formato compatível com a OpenAI).
+/* Redação com IA (OpenAI; o Gemini grátis fica só como plano B).
 
-   Manda os itens em lotes de 8 e recebe, para cada um: se é relevante,
+   Manda os itens em lotes de 12 e recebe, para cada um: se é relevante,
    título e resumo próprios em português, por que importa, importância de 1
    a 5, a chave do assunto (para juntar a mesma notícia vinda de vários
    lugares) e etiquetas. Nunca copia frases da fonte. */
 
-// Rotas de IA, em ordem. Lidas na hora (o .env local só carrega depois do import).
-// - Padrão: os modelos grátis do Gemini, do mais novo ao mais leve.
-// - OPENAI_CHAVE (opcional): a OpenAI entra como RESERVA, só quando o Gemini falha
-//   (sobrecarga ou limite do dia). Modelo: OPENAI_MODELO, padrão gpt-5.4-mini.
-// - IA_ENDERECO + IA_CHAVE + IA_MODELO: troca tudo por uma IA só (ex.: só ChatGPT).
+// Qual IA usar (lido na hora: o .env local só carrega depois do import):
+// - OPENAI_CHAVE: a OpenAI é a principal (decisão do Edmar em 18/11/2026).
+//   Modelo: OPENAI_MODELO, padrão gpt-5.4-mini.
+// - Sem OPENAI_CHAVE: os modelos grátis do Gemini (GEMINI_CHAVE), do mais novo ao mais leve.
+// - IA_ENDERECO + IA_CHAVE + IA_MODELO: troca tudo por outra IA compatível.
 const GEMINI = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 const OPENAI = "https://api.openai.com/v1/chat/completions";
 function rotas() {
   const env = process.env;
   if (env.IA_ENDERECO && env.IA_CHAVE && env.IA_MODELO) {
-    return [{ nome: env.IA_MODELO, endereco: env.IA_ENDERECO, chave: env.IA_CHAVE }];
+    return [{ nome: env.IA_MODELO, endereco: env.IA_ENDERECO, chave: env.IA_CHAVE, paga: true }];
+  }
+  if (env.OPENAI_CHAVE) {
+    return [{ nome: env.OPENAI_MODELO || "gpt-5.4-mini", endereco: OPENAI, chave: env.OPENAI_CHAVE, paga: true }];
   }
   const lista = [];
   if (env.GEMINI_CHAVE) {
     const modelos = [env.GEMINI_MODELO || "gemini-flash-latest", "gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.5-flash-lite"];
     for (const m of new Set(modelos)) lista.push({ nome: m, endereco: GEMINI, chave: env.GEMINI_CHAVE });
   }
-  if (env.OPENAI_CHAVE) {
-    lista.push({ nome: env.OPENAI_MODELO || "gpt-5.4-mini", endereco: OPENAI, chave: env.OPENAI_CHAVE, paga: true });
-  }
   return lista;
 }
-const LOTE = 12; // menos pedidos por dia: o plano grátis tem limite diário por modelo
-const PAUSA_MS = 6500; // nível gratuito: poucos pedidos por minuto
+const LOTE = 12;
+// O Gemini grátis aceita poucos pedidos por minuto; a OpenAI paga, não precisa esperar.
+export const pausaEntrePedidos = () => (rotas().every((r) => r.paga) ? 500 : 6500);
 
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -107,14 +108,20 @@ async function chamarComReserva(conteudo, sistema = INSTRUCOES) {
           // (na próxima, daqui a 30 min, o Gemini é tentado de novo)
           for (const outra of todas) if (!outra.paga) esgotados.add(outra.nome);
         }
-        console.log(`  IA: lote ok com ${rota.nome}${rota.paga ? " (reserva paga)" : ""}`);
+        console.log(`  IA: lote ok com ${rota.nome}`);
         return r;
       } catch (e) {
         console.log(`  IA: ${rota.nome} falhou (${e.status ?? e.message})`);
         ultimoErro = e;
         // 404/400 = modelo não existe; 401/403 = chave errada; 429 = limite do plano
         // (por minuto ou do dia): vai direto para a próxima e não volta nesta rodada
+        const semCredito = /insufficient_quota|billing/i.test(e.message);
+        if (e.status === 429 && rota.paga && !semCredito && tentativa === 0) {
+          await espera(20_000); // limite por minuto da conta paga: passa logo
+          continue;
+        }
         if ([400, 401, 403, 404, 429].includes(e.status)) {
+          if (semCredito) console.warn("  ! IA sem crédito: confira o saldo e o limite de gasto da conta");
           esgotados.add(rota.nome);
           break;
         }
@@ -157,7 +164,7 @@ export async function redigir(itens, assuntos = []) {
     } catch (e) {
       console.warn(`  ! IA falhou no lote ${i / LOTE + 1}: ${e.message}`);
     }
-    if (i + LOTE < itens.length) await espera(PAUSA_MS);
+    if (i + LOTE < itens.length) await espera(pausaEntrePedidos());
   }
   return itens.map((_, idx) => saida.get(idx) ?? null);
 }

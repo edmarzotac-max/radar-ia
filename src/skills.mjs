@@ -5,7 +5,7 @@
 
 import { createHash } from "node:crypto";
 import { buscar, cabecalhoGitHub } from "./coletar.mjs";
-import { redigirSkill } from "./ia.mjs";
+import { pausaEntrePedidos, redigirSkill } from "./ia.mjs";
 
 const CATEGORIAS = ["design", "video", "motion", "automacao", "outros"];
 const MAX_IMAGENS = 6;
@@ -87,7 +87,7 @@ export async function prepararSkills(lista) {
       continue;
     }
     const r = await redigirSkill(s, readmeLimpo(md));
-    await new Promise((ok) => setTimeout(ok, 6500)); // plano grátis: poucos pedidos por minuto
+    await new Promise((ok) => setTimeout(ok, pausaEntrePedidos()));
     if (!r) continue; // IA falhou: tenta de novo depois
     vistos.push(s.url);
     if (!r.relevante || !r.titulo || !r.resumo) {
