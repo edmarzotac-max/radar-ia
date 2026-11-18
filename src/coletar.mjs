@@ -211,7 +211,7 @@ async function lerHackerNews() {
   return [...vistos.values()];
 }
 
-function cabecalhoGitHub() {
+export function cabecalhoGitHub() {
   const h = { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
   if (process.env.GITHUB_TOKEN) h.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
   return h;
@@ -315,6 +315,14 @@ async function lerSkills() {
           oficial: false,
           comunidade: true,
           estrelas: repo.stargazers_count,
+          // vai para a fila de skills do painel, não para o portal de notícias
+          skill: true,
+          repo: repo.full_name,
+          descricao: repo.description ?? "",
+          linguagem: repo.language ?? "",
+          licenca: repo.license?.spdx_id && repo.license.spdx_id !== "NOASSERTION" ? repo.license.spdx_id : "",
+          topicos: lista(repo.topics),
+          branch: repo.default_branch || "main",
         });
       }
     } catch (e) {

@@ -15,7 +15,8 @@ process.env.TELEGRAM_CANAL = "@canal_falso";
 process.env.TELEGRAM_MEU_CHAT = "123";
 
 const fetchReal = globalThis.fetch;
-const banco = { news: [], seen: new Set(), id: 0 };
+const banco = { news: [], seen: new Set(), skills: [], id: 0 };
+const indexnow = [];
 const telegram = [];
 let pedidosIA = 0;
 const repetidos = []; // links analisados duas vezes (não pode acontecer)
@@ -29,6 +30,15 @@ globalThis.fetch = async (url, opts = {}) => {
     pedidosIA++;
     const corpo = JSON.parse(opts.body);
     const conteudo = corpo.messages[1].content;
+    if (!conteudo.includes("Itens:")) {
+      // rascunho de skill (um pedido por repositório)
+      const sk = JSON.parse(conteudo);
+      return resposta({ choices: [{ message: { content: JSON.stringify({
+        relevante: true, nome: sk.repositorio.split("/")[1], titulo: `Skill de teste ${sk.repositorio}`,
+        resumo: "Resumo de teste da skill.", para_quem: "Para quem testa.", instalar: ["passo 1", "passo 2"],
+        como_usar: "\"faz um teste\"", categoria: "motion", tags: ["teste"],
+      }) } }] });
+    }
     const itens = JSON.parse(conteudo.slice(conteudo.indexOf("Itens:\n") + 7));
     return resposta({
       choices: [{
@@ -74,6 +84,19 @@ globalThis.fetch = async (url, opts = {}) => {
       }
       return resposta(ins);
     }
+    if (fn === "radar_skill_queue") {
+      for (const x of b.p_seen) {
+        if (banco.seen.has(x)) repetidos.push(x);
+        banco.seen.add(x);
+      }
+      const ins = [];
+      for (const i of b.p_items) {
+        if (banco.skills.some((k) => k.repo === i.repo)) continue;
+        banco.skills.push(i);
+        ins.push({ id: ++banco.id, slug: i.slug, repo: i.repo });
+      }
+      return resposta(ins);
+    }
     if (fn === "radar_recent") return resposta([...banco.news].reverse());
     if (fn === "radar_mark") {
       for (const n of banco.news) {
@@ -84,6 +107,13 @@ globalThis.fetch = async (url, opts = {}) => {
       return new Response("", { status: 200 });
     }
     return resposta({ message: "função desconhecida" }, 404);
+  }
+  if (u.includes("api.indexnow.org")) {
+    indexnow.push(...JSON.parse(opts.body).urlList);
+    return new Response("", { status: 202 });
+  }
+  if (u.includes("api.github.com/repos/") && u.endsWith("/readme")) {
+    return new Response(["# Skill", "![demo](docs/demo.gif)", "![badge](https://img.shields.io/x.svg)", "Instale com `npx skills add x`."].join("\n"), { status: 200 });
   }
   if (u.includes("api.telegram.org")) {
     const b = JSON.parse(opts.body);
@@ -110,9 +140,13 @@ const alerta = telegram.filter((t) => t.chat_id === "123");
 if (!alerta.length) falhas.push("alerta no privado não saiu");
 if (canal.length > 4) falhas.push("canal recebeu mais de 4 posts numa rodada");
 if (banco.news.some((n) => n.title.includes("customer"))) falhas.push("item irrelevante foi publicado");
+if (banco.news.some((n) => n.title.startsWith("Skill de teste"))) falhas.push("skill foi direto para o portal");
+if (banco.news.some((n) => !indexnow.some((x) => x.endsWith(`/noticias/${n.slug}`)))) falhas.push("notícia publicada sem aviso ao IndexNow");
+if (new Set(banco.skills.map((k) => k.repo)).size !== banco.skills.length) falhas.push("skill repetida na fila");
+if (banco.skills.some((k) => k.images.some((i) => /shields/.test(i)) || !k.images.some((i) => i.includes("raw.githubusercontent.com")))) falhas.push("imagens da skill erradas");
 
 console.log(`\nResultado: ${r1.news} no portal · ${banco.seen.size} vistos · ${pedidosIA} pedidos à IA · ` +
-  `${canal.length} no canal · ${alerta.length} alertas · super: ${banco.news.filter((n) => n.is_breaking).map((n) => n.title).join(" | ")}`);
+  `${canal.length} no canal · ${alerta.length} alertas · ${banco.skills.length} skills na fila · ${indexnow.length} links no IndexNow · super: ${banco.news.filter((n) => n.is_breaking).map((n) => n.title).join(" | ")}`);
 console.log("\nExemplo de post do canal:\n" + (canal[0]?.text ?? "(nenhum)"));
 console.log(falhas.length ? `\nFALHOU:\n- ${falhas.join("\n- ")}` : "\nTUDO CERTO");
 process.exit(falhas.length ? 1 : 0);

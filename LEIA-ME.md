@@ -7,7 +7,9 @@ Raspador de notícias de inteligência artificial, tecnologia, games e internet.
 3. o Gemini (API grátis) descarta oferta e fofoca, escolhe a editoria (IA, tecnologia, games ou internet) e escreve título, resumo e "por que importa" em português, com palavras próprias;
 4. grava no Supabase do site → aparece em edmarcastro.com.br/noticias;
 5. posta no canal do Telegram as de IA com nota 4 ou 5 e as das outras editorias só com nota 5 (no máximo 4 por rodada);
-6. **super notícia**: 3 fontes diferentes sobre o mesmo fato em 6 horas, ou anúncio oficial nota 5 → vira "URGENTE" no portal e no canal, e o robô te avisa no privado.
+6. **skills**: as skills novas de design, vídeo, motion e automação achadas no GitHub NÃO vão direto para o portal. O radar lê o README de cada uma, a IA escreve o rascunho da página (o que faz, para quem, como instalar, como usar) e põe na fila do painel `edmarcastro.com.br/admin/skills` (mesmo login das métricas). Lá o Edmar testa e escolhe Descartar ou Publicar (nota, uma frase e, se quiser, o vídeo do teste). Publicada, a página vai para `/skills/<nome>`, entra no sitemap e o Bing é avisado na hora;
+7. **avisa os buscadores**: cada notícia nova é mandada ao IndexNow (Bing, Yandex). O Google lê o `sitemap.xml` e o `sitemap-noticias.xml`;
+8. **super notícia**: 3 fontes diferentes sobre o mesmo fato em 6 horas, ou anúncio oficial nota 5 → vira "URGENTE" no portal e no canal, e o robô te avisa no privado.
 
 Custo: zero. Fontes ficam em `src/fontes.mjs`.
 

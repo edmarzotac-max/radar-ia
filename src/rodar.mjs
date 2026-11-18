@@ -9,7 +9,9 @@ import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { coletarTudo } from "./coletar.mjs";
 import { iaLigada, redigir } from "./ia.mjs";
-import { bancoLigado, gravar, marcar, naoVistos, recentes } from "./banco.mjs";
+import { bancoLigado, enfileirarSkills, gravar, marcar, naoVistos, recentes } from "./banco.mjs";
+import { prepararSkills } from "./skills.mjs";
+import { avisarBuscadores } from "./indexnow.mjs";
 import { alertaLigado, avisarEdmar, mensagem, postarNoCanal, telegramLigado } from "./telegram.mjs";
 
 try {
@@ -27,6 +29,7 @@ const MAX_CANAL = 4; // posts no canal por rodada
 const FONTES_SUPER = 3; // fontes diferentes no mesmo assunto = super notícia
 const HORAS_ASSUNTO = 6;
 const NOTA_MINIMA = 3; // abaixo disso a notícia não entra no portal
+const MAX_SKILLS = 6; // skills novas preparadas por rodada (um pedido de IA cada)
 
 const linkPortal = (slug) => `${SITE}/noticias/${slug}`;
 
@@ -69,7 +72,10 @@ export async function principal() {
   // 2. Só o que é novo
   const novosUrls = new Set(bancoLigado() ? await naoVistos(itens.map((i) => i.url)) : itens.map((i) => i.url));
   let novos = itens.filter((i) => novosUrls.has(i.url)).sort(prioridade);
-  console.log(`  novos: ${novos.length}`);
+  // skills vão para a fila do painel (o Edmar testa antes), não para o portal
+  const novasSkills = novos.filter((i) => i.skill).sort((a, b) => (b.estrelas ?? 0) - (a.estrelas ?? 0));
+  novos = novos.filter((i) => !i.skill);
+  console.log(`  novos: ${novos.length} · skills novas: ${novasSkills.length}`);
 
   if (SEMEAR) {
     // até 3 das mais recentes de cada fonte, para todas as editorias começarem cheias
@@ -83,8 +89,9 @@ export async function principal() {
     const publicar = iaLigada() ? [...porFonte.values()].flat().slice(0, MAX_SEMEAR) : [];
     const analisados = await processar(publicar);
     if (!TESTE) {
-      // marca TUDO como visto (inclusive o que não foi publicado)
-      const todos = itens.map((i) => i.url);
+      // marca tudo como visto (inclusive o que não foi publicado), menos as
+      // skills: essas as rodadas normais preparam para a fila do painel
+      const todos = itens.filter((i) => !i.skill).map((i) => i.url);
       for (let k = 0; k < todos.length; k += 300) {
         await gravar(k === 0 ? analisados.registros : [], todos.slice(k, k + 300));
       }
@@ -99,15 +106,34 @@ export async function principal() {
   if (TESTE) {
     console.log("\n  O QUE SERIA PUBLICADO:");
     for (const r of registros) console.log(`   [${r.importance}] ${r.title}\n        ${r.source_name} · ${r.topic_key ?? "-"} · ${r.source_url}`);
+    if (iaLigada() && novasSkills.length) {
+      const { fila } = await prepararSkills(novasSkills.slice(0, 2));
+      console.log("\n  SKILLS QUE IRIAM PARA A FILA (amostra de 2):");
+      for (const f of fila) console.log(`   [${f.category}] ${f.title}\n        ${f.repo} · ${f.images.length} imagem(ns) · ${f.install.length} passo(s)`);
+    }
     return;
   }
 
   // 3. Grava
   const inseridos = vistos.length || registros.length ? (await gravar(registros, vistos)) ?? [] : [];
   console.log(`  publicados no portal: ${inseridos.length}`);
+  if (inseridos.length) await avisarBuscadores(inseridos.map((x) => linkPortal(x.slug)), SITE);
 
   // 4. Super notícia e Telegram
   await superNoticiaETelegram(inseridos);
+
+  // 5. Skills novas → fila do painel /admin/skills
+  if (novasSkills.length) {
+    try {
+      const { fila, vistos: skillsVistas } = await prepararSkills(novasSkills.slice(0, MAX_SKILLS));
+      if (fila.length || skillsVistas.length) {
+        const r = (await enfileirarSkills(fila, skillsVistas)) ?? [];
+        console.log(`  skills na fila do painel: ${r.length}`);
+      }
+    } catch (e) {
+      console.warn(`  ! fila de skills: ${e.message}`);
+    }
+  }
   console.log(`  fim em ${Math.round((Date.now() - inicio) / 1000)} s`);
 }
 

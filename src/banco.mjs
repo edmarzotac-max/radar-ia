@@ -39,3 +39,6 @@ export const recentes = (horas) => rpc("radar_recent", { p_hours: horas });
 
 export const marcar = (ids, { superNoticia = false, telegram = false }) =>
   ids.length ? rpc("radar_mark", { p_ids: ids, p_breaking: superNoticia, p_telegram: telegram }) : null;
+
+/* Skills novas para a fila do painel /admin/skills (e links marcados como vistos). */
+export const enfileirarSkills = (itens, vistos) => rpc("radar_skill_queue", { p_items: itens, p_seen: vistos });
