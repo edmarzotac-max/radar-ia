@@ -5,17 +5,28 @@
    a 5, a chave do assunto (para juntar a mesma notícia vinda de vários
    lugares) e etiquetas. Nunca copia frases da fonte. */
 
-// Trocar de IA (ex.: ChatGPT) sem mexer no código: IA_ENDERECO, IA_CHAVE e IA_MODELO.
-// Para a OpenAI: IA_ENDERECO=https://api.openai.com/v1/chat/completions
-const ENDERECO = process.env.IA_ENDERECO || "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
-const CHAVE = () => process.env.IA_CHAVE || process.env.GEMINI_CHAVE;
-// Reservas: se o modelo mais novo estiver sobrecarregado (erro 503), tenta os anteriores.
-const MODELOS = process.env.IA_MODELO ? [process.env.IA_MODELO] : [
-  process.env.GEMINI_MODELO || "gemini-flash-latest",
-  "gemini-3.5-flash",
-  "gemini-flash-lite-latest",
-  "gemini-3.5-flash-lite",
-];
+// Rotas de IA, em ordem. Lidas na hora (o .env local só carrega depois do import).
+// - Padrão: os modelos grátis do Gemini, do mais novo ao mais leve.
+// - OPENAI_CHAVE (opcional): a OpenAI entra como RESERVA, só quando o Gemini falha
+//   (sobrecarga ou limite do dia). Modelo: OPENAI_MODELO, padrão gpt-5.4-mini.
+// - IA_ENDERECO + IA_CHAVE + IA_MODELO: troca tudo por uma IA só (ex.: só ChatGPT).
+const GEMINI = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+const OPENAI = "https://api.openai.com/v1/chat/completions";
+function rotas() {
+  const env = process.env;
+  if (env.IA_ENDERECO && env.IA_CHAVE && env.IA_MODELO) {
+    return [{ nome: env.IA_MODELO, endereco: env.IA_ENDERECO, chave: env.IA_CHAVE }];
+  }
+  const lista = [];
+  if (env.GEMINI_CHAVE) {
+    const modelos = [env.GEMINI_MODELO || "gemini-flash-latest", "gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.5-flash-lite"];
+    for (const m of new Set(modelos)) lista.push({ nome: m, endereco: GEMINI, chave: env.GEMINI_CHAVE });
+  }
+  if (env.OPENAI_CHAVE) {
+    lista.push({ nome: env.OPENAI_MODELO || "gpt-5.4-mini", endereco: OPENAI, chave: env.OPENAI_CHAVE, paga: true });
+  }
+  return lista;
+}
 const LOTE = 12; // menos pedidos por dia: o plano grátis tem limite diário por modelo
 const PAUSA_MS = 6500; // nível gratuito: poucos pedidos por minuto
 
@@ -48,15 +59,15 @@ Para repositórios do GitHub (tipo github), diga o que o projeto faz e para quem
 
 Responda só com JSON no formato {"itens":[...]}.`;
 
-async function chamar(modelo, conteudo, sistema) {
-  const r = await fetch(ENDERECO, {
+async function chamar(rota, conteudo, sistema) {
+  const r = await fetch(rota.endereco, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${CHAVE()}`,
+      Authorization: `Bearer ${rota.chave}`,
     },
     body: JSON.stringify({
-      model: modelo,
+      model: rota.nome,
       temperature: 0.3,
       response_format: { type: "json_object" },
       messages: [
@@ -68,7 +79,7 @@ async function chamar(modelo, conteudo, sistema) {
   });
   if (!r.ok) {
     const corpo = await r.text().catch(() => "");
-    const erro = new Error(`Gemini ${r.status}: ${corpo.slice(0, 300)}`);
+    const erro = new Error(`${rota.nome} ${r.status}: ${corpo.slice(0, 300)}`);
     erro.status = r.status;
     throw erro;
   }
@@ -78,27 +89,44 @@ async function chamar(modelo, conteudo, sistema) {
   return JSON.parse(limpo);
 }
 
+// Modelos que estouraram o limite (429) ou não existem: pulados até o fim da rodada.
+const esgotados = new Set();
+export const usoReserva = { pedidos: 0 }; // quantas vezes a IA paga foi usada nesta rodada
+
 async function chamarComReserva(conteudo, sistema = INSTRUCOES) {
-  let ultimoErro;
-  for (const modelo of MODELOS) {
+  let ultimoErro = new Error("nenhuma IA configurada");
+  const todas = rotas();
+  const disponiveis = todas.filter((r) => !esgotados.has(r.nome));
+  for (const rota of disponiveis.length ? disponiveis : todas) {
     for (let tentativa = 0; tentativa < 2; tentativa++) {
       try {
-        const r = await chamar(modelo, conteudo, sistema);
-        console.log(`  IA: lote ok com ${modelo}`);
+        const r = await chamar(rota, conteudo, sistema);
+        if (rota.paga) {
+          usoReserva.pedidos++;
+          // o Gemini grátis falhou inteiro: nesta rodada vai direto para a reserva
+          // (na próxima, daqui a 30 min, o Gemini é tentado de novo)
+          for (const outra of todas) if (!outra.paga) esgotados.add(outra.nome);
+        }
+        console.log(`  IA: lote ok com ${rota.nome}${rota.paga ? " (reserva paga)" : ""}`);
         return r;
       } catch (e) {
-        console.log(`  IA: ${modelo} falhou (${e.status ?? e.message})`);
+        console.log(`  IA: ${rota.nome} falhou (${e.status ?? e.message})`);
         ultimoErro = e;
-        if (e.status === 404 || e.status === 400) break; // modelo não existe: tenta o próximo
-        // 429 = limite por minuto; 503 = Google sobrecarregado (costuma passar em segundos)
-        await espera(e.status === 429 ? 20_000 : 8000 * (tentativa + 1));
+        // 404/400 = modelo não existe; 401/403 = chave errada; 429 = limite do plano
+        // (por minuto ou do dia): vai direto para a próxima e não volta nesta rodada
+        if ([400, 401, 403, 404, 429].includes(e.status)) {
+          esgotados.add(rota.nome);
+          break;
+        }
+        if (e.name === "TimeoutError" || e.name === "AbortError") break; // travado: tenta a próxima
+        await espera(8000 * (tentativa + 1)); // 503 = sobrecarregado (costuma passar)
       }
     }
   }
   throw ultimoErro;
 }
 
-export const iaLigada = () => !!CHAVE();
+export const iaLigada = () => rotas().length > 0;
 
 /* itens: lista da coleta. assuntos: [{ chave, titulo }] das últimas horas. */
 export async function redigir(itens, assuntos = []) {

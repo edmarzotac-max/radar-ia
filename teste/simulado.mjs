@@ -10,6 +10,7 @@ process.env.SUPABASE_URL = "https://falso.supabase.co";
 process.env.SUPABASE_CHAVE_PUBLICA = "chave-falsa";
 process.env.RADAR_TOKEN = "token-falso";
 process.env.GEMINI_CHAVE = "gemini-falso";
+process.env.OPENAI_CHAVE = ""; // o teste nunca usa a IA paga
 process.env.TELEGRAM_BOT_TOKEN = "bot-falso";
 process.env.TELEGRAM_CANAL = "@canal_falso";
 process.env.TELEGRAM_MEU_CHAT = "123";

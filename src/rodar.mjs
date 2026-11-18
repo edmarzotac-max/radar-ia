@@ -8,7 +8,7 @@
 import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { coletarTudo } from "./coletar.mjs";
-import { iaLigada, redigir } from "./ia.mjs";
+import { iaLigada, redigir, usoReserva } from "./ia.mjs";
 import { bancoLigado, enfileirarSkills, gravar, marcar, naoVistos, recentes } from "./banco.mjs";
 import { prepararSkills } from "./skills.mjs";
 import { avisarBuscadores } from "./indexnow.mjs";
@@ -30,6 +30,7 @@ const FONTES_SUPER = 3; // fontes diferentes no mesmo assunto = super notícia
 const HORAS_ASSUNTO = 6;
 const NOTA_MINIMA = 3; // abaixo disso a notícia não entra no portal
 const MAX_SKILLS = 6; // skills novas preparadas por rodada (um pedido de IA cada)
+const TEMPO_SKILLS_MS = 14 * 60_000; // depois disso não começa skill nova (a rodada tem 20 min)
 
 const linkPortal = (slug) => `${SITE}/noticias/${slug}`;
 
@@ -123,17 +124,22 @@ export async function principal() {
   await superNoticiaETelegram(inseridos);
 
   // 5. Skills novas → fila do painel /admin/skills
-  if (novasSkills.length) {
+  // Uma por vez, gravando na hora: se a rodada for cortada, o que ficou pronto não se perde
+  let naFila = 0;
+  for (const s of novasSkills.slice(0, MAX_SKILLS)) {
+    if (Date.now() - inicio > TEMPO_SKILLS_MS) {
+      console.log("  skills: tempo da rodada acabando, o resto fica para a próxima");
+      break;
+    }
     try {
-      const { fila, vistos: skillsVistas } = await prepararSkills(novasSkills.slice(0, MAX_SKILLS));
-      if (fila.length || skillsVistas.length) {
-        const r = (await enfileirarSkills(fila, skillsVistas)) ?? [];
-        console.log(`  skills na fila do painel: ${r.length}`);
-      }
+      const { fila, vistos: skillsVistas } = await prepararSkills([s]);
+      if (fila.length || skillsVistas.length) naFila += ((await enfileirarSkills(fila, skillsVistas)) ?? []).length;
     } catch (e) {
-      console.warn(`  ! fila de skills: ${e.message}`);
+      console.warn(`  ! fila de skills (${s.repo}): ${e.message}`);
     }
   }
+  if (novasSkills.length) console.log(`  skills na fila do painel: ${naFila}`);
+  if (usoReserva.pedidos) console.log(`  IA paga (reserva) usada em ${usoReserva.pedidos} pedido(s)`);
   console.log(`  fim em ${Math.round((Date.now() - inicio) / 1000)} s`);
 }
 

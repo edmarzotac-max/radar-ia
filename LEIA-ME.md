@@ -41,6 +41,7 @@ aistudio.google.com/apikey → Create API key.
 | `SUPABASE_CHAVE_PUBLICA` | a chave publicável do Supabase (a mesma `SUPABASE_PUBLISHABLE_KEY` do `.env` do site) |
 | `RADAR_TOKEN` | o código do arquivo `ACESSO-RADAR.txt` (nesta pasta, não vai para o GitHub) |
 | `GEMINI_CHAVE` | a chave do passo 3 |
+| `OPENAI_CHAVE` | (opcional, paga) chave da OpenAI: só é usada quando o Gemini grátis falha. Modelo padrão `gpt-5.4-mini`; para trocar, crie a variável `OPENAI_MODELO` |
 | `TELEGRAM_BOT_TOKEN` | o token do passo 2.1 |
 | `TELEGRAM_CANAL` | o @ do canal, ex.: `@radaria_br` |
 | `TELEGRAM_MEU_CHAT` | o seu ID do passo 2.4 |

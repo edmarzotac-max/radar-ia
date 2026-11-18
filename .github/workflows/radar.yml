@@ -19,7 +19,7 @@ concurrency:
 jobs:
   rodar:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -40,6 +40,9 @@ jobs:
           IA_ENDERECO: ${{ vars.IA_ENDERECO }}
           IA_MODELO: ${{ vars.IA_MODELO }}
           IA_CHAVE: ${{ secrets.IA_CHAVE }}
+          # reserva paga, só usada quando o Gemini grátis falha (opcional)
+          OPENAI_CHAVE: ${{ secrets.OPENAI_CHAVE }}
+          OPENAI_MODELO: ${{ vars.OPENAI_MODELO }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CANAL: ${{ secrets.TELEGRAM_CANAL }}
           TELEGRAM_MEU_CHAT: ${{ secrets.TELEGRAM_MEU_CHAT }}
