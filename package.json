@@ -7,12 +7,14 @@
     "rodar": "node src/rodar.mjs",
     "teste": "node src/rodar.mjs --teste",
     "semear": "node src/rodar.mjs --semear",
-    "midia": "node src/completar-midia.mjs"
+    "midia": "node src/completar-midia.mjs",
+    "newsletter": "node src/newsletter.mjs"
   },
   "engines": {
     "node": ">=22"
   },
   "dependencies": {
-    "fast-xml-parser": "^5.12.1"
+    "fast-xml-parser": "^5.12.1",
+    "sharp": "^0.34.5"
   }
 }

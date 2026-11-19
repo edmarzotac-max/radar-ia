@@ -42,3 +42,6 @@ export const marcar = (ids, { superNoticia = false, telegram = false }) =>
 
 /* Skills novas para a fila do painel /admin/skills (e links marcados como vistos). */
 export const enfileirarSkills = (itens, vistos) => rpc("radar_skill_queue", { p_items: itens, p_seen: vistos });
+
+/* Produtos de afiliado de uma notícia já publicada (até 3). */
+export const definirProdutos = (id, produtos) => rpc("radar_set_products", { p_id: id, p_products: produtos });

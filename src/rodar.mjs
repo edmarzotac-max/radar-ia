@@ -9,7 +9,8 @@ import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { coletarTudo } from "./coletar.mjs";
 import { iaLigada, redigir, usoReserva } from "./ia.mjs";
-import { bancoLigado, enfileirarSkills, gravar, marcar, naoVistos, recentes } from "./banco.mjs";
+import { bancoLigado, definirProdutos, enfileirarSkills, gravar, marcar, naoVistos, recentes } from "./banco.mjs";
+import { afiliadosLigado, produtosShopee } from "./afiliados.mjs";
 import { prepararSkills } from "./skills.mjs";
 import { avisarBuscadores } from "./indexnow.mjs";
 import { capaAutomaticaGitHub, imagemAbre, imagemDaWikipedia, imagemDoGitHub, lerMidia } from "./midia.mjs";
@@ -121,6 +122,23 @@ export async function principal() {
   console.log(`  publicados no portal: ${inseridos.length}`);
   if (inseridos.length) await avisarBuscadores(inseridos.map((x) => linkPortal(x.slug)), SITE);
 
+  // Vitrine discreta: produtos da Shopee só nas notícias em que a IA viu um produto físico
+  if (afiliadosLigado()) {
+    for (const ins of inseridos) {
+      const reg = registros.find((r) => r.slug === ins.slug);
+      if (!reg?.produto) continue;
+      try {
+        const produtos = await produtosShopee(reg.produto);
+        if (produtos.length) {
+          await definirProdutos(ins.id, produtos);
+          console.log(`  vitrine: ${produtos.length} produto(s) "${reg.produto}" em ${ins.slug}`);
+        }
+      } catch (e) {
+        console.warn(`  ! vitrine (${reg.produto}): ${e.message}`);
+      }
+    }
+  }
+
   // 4. Super notícia e Telegram
   await superNoticiaETelegram(inseridos);
 
@@ -216,6 +234,7 @@ async function processar(lista) {
       published_at: it.publicado ?? new Date().toISOString(),
       oficial: it.oficial,
       entidade: limitar(r.entidade, 60),
+      produto: limitar(r.produto, 60),
     });
   });
   return { registros: await comMidia(registros), vistos };
@@ -245,10 +264,18 @@ async function comMidia(registros) {
     const irma = [...registros, ...rec].find((o) => o !== r && o.topic_key === r.topic_key && o.image_url);
     if (irma) r.image_url = irma.image_url;
   }
-  // por último, a foto ou o logo da empresa/produto na Wikipédia
-  for (const r of registros.filter((x) => !x.image_url && x.entidade)) {
-    const wiki = await imagemDaWikipedia(r.entidade);
-    r.image_url = wiki && (await imagemAbre(wiki)) ? wiki : "";
+  // por último, a foto ou o logo da empresa/produto na Wikipédia; se a IA não
+  // apontou a empresa, a da própria fonte (OpenAI, Google, NVIDIA...)
+  const fontePadrao = (nome) => String(nome ?? "").replace(/\s*\(.*\)\s*$/, "").trim();
+  for (const r of registros.filter((x) => !x.image_url)) {
+    for (const termo of [r.entidade, fontePadrao(r.source_name)]) {
+      if (!termo || /^(github|hacker news)$/i.test(termo)) continue;
+      const wiki = await imagemDaWikipedia(termo);
+      if (wiki && (await imagemAbre(wiki))) {
+        r.image_url = wiki;
+        break;
+      }
+    }
   }
   const semImagem = registros.filter((r) => !r.image_url);
   for (const r of semImagem) console.log(`  sem imagem, não publicada: ${r.title}`);

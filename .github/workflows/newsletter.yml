@@ -1,0 +1,51 @@
+name: Radar da semana (e-mail)
+
+# Toda sexta às 8h (Brasília) manda o resumo da semana para quem se inscreveu.
+# Manual: "previa" só monta o e-mail; "teste" envia só para NEWSLETTER_TESTE.
+on:
+  schedule:
+    - cron: "0 11 * * 5"
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: "previa, teste ou enviar"
+        required: true
+        default: "teste"
+
+concurrency:
+  group: newsletter
+  cancel-in-progress: false
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Montar e enviar
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_CHAVE_PUBLICA: ${{ secrets.SUPABASE_CHAVE_PUBLICA }}
+          RADAR_TOKEN: ${{ secrets.RADAR_TOKEN }}
+          RESEND_CHAVE: ${{ secrets.RESEND_CHAVE }}
+          NEWSLETTER_DE: ${{ secrets.NEWSLETTER_DE }}
+          NEWSLETTER_TESTE: ${{ secrets.NEWSLETTER_TESTE }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          case "${{ github.event.inputs.modo || 'enviar' }}" in
+            previa) node src/newsletter.mjs --previa ;;
+            teste) node src/newsletter.mjs --teste ;;
+            *) node src/newsletter.mjs ;;
+          esac
+      - name: Guardar a prévia
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newsletter-previa
+          path: newsletter-previa.html
+          if-no-files-found: ignore

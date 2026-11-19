@@ -43,6 +43,9 @@ jobs:
           # reserva paga, só usada quando o Gemini grátis falha (opcional)
           OPENAI_CHAVE: ${{ secrets.OPENAI_CHAVE }}
           OPENAI_MODELO: ${{ vars.OPENAI_MODELO }}
+          # vitrine de afiliados (opcional)
+          SHOPEE_APP_ID: ${{ secrets.SHOPEE_APP_ID }}
+          SHOPEE_SECRET: ${{ secrets.SHOPEE_SECRET }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CANAL: ${{ secrets.TELEGRAM_CANAL }}
           TELEGRAM_MEU_CHAT: ${{ secrets.TELEGRAM_MEU_CHAT }}

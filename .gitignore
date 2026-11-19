@@ -4,3 +4,4 @@ node_modules
 !.env.exemplo
 ACESSO-RADAR.txt
 *.log
+newsletter-previa.html

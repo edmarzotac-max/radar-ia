@@ -43,6 +43,10 @@ aistudio.google.com/apikey → Create API key.
 | `RADAR_TOKEN` | o código do arquivo `ACESSO-RADAR.txt` (nesta pasta, não vai para o GitHub) |
 | `GEMINI_CHAVE` | a chave do passo 3 |
 | `OPENAI_CHAVE` | chave da OpenAI (paga): é a IA principal desde 18/11. Modelo padrão `gpt-5.4-mini`; para trocar, crie a variável `OPENAI_MODELO`. Sem ela, o radar volta para o Gemini grátis |
+| `RESEND_CHAVE` | chave da Resend (radar da semana por e-mail) |
+| `NEWSLETTER_DE` | remetente, ex.: `Edmar Castro <radar@edmarcastro.com.br>` (domínio confirmado na Resend) |
+| `NEWSLETTER_TESTE` | o seu e-mail, para o modo teste do radar semanal |
+| `SHOPEE_APP_ID` / `SHOPEE_SECRET` | painel de afiliado da Shopee → Open API (vitrine de produtos; opcional) |
 | `TELEGRAM_BOT_TOKEN` | o token do passo 2.1 |
 | `TELEGRAM_CANAL` | o @ do canal, ex.: `@radaria_br` |
 | `TELEGRAM_MEU_CHAT` | o seu ID do passo 2.4 |
@@ -70,3 +74,9 @@ Colocar o link do canal em `edmarcastro-site/src/lib/news.ts` (`TELEGRAM_URL`) e
 - O GitHub às vezes atrasa o horário em 5 a 15 minutos.
 - Se o repositório ficar 60 dias sem commit, o GitHub desliga o agendamento; o próprio radar faz um commit vazio a cada 45 dias para isso não acontecer.
 - Esconder uma notícia: no Supabase, tabela `news`, marcar `hidden = true`.
+
+## Radar da semana (e-mail)
+Toda sexta às 8h o workflow "Radar da semana (e-mail)" monta o resumo (5 notícias com imagem + 1 skill) e envia pela Resend para quem se inscreveu no portal (isca "radar-semanal" ou qualquer material grátis). Cada e-mail tem o link de descadastro da pessoa (`/descadastrar`). Testar: Actions → Radar da semana → Run workflow → `teste` (vai só para NEWSLETTER_TESTE) ou `previa` (só monta). No computador: `npm run newsletter -- --previa` gera `newsletter-previa.html`.
+
+## Vitrine de afiliados (Shopee)
+Quando a IA vê um produto físico na matéria (placa de vídeo, mesa digitalizadora, microfone...), o radar busca na Shopee pela API de afiliados e guarda até 3 produtos com foto em fundo branco, boa avaliação e mais vendidos. Eles aparecem discretos na lateral da notícia, com o aviso "links de parceiro". Sem `SHOPEE_APP_ID`/`SHOPEE_SECRET`, a vitrine não aparece.
