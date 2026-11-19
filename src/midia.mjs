@@ -140,3 +140,32 @@ export async function imagemAbre(url) {
     return false;
   }
 }
+
+/* Capa automática do GitHub (fundo branco com o nome do repositório escrito)
+   não chama atenção nem deixa ler o título por cima. Para projetos do GitHub,
+   a capa vira a primeira imagem do README (print ou GIF de demonstração). */
+export const capaAutomaticaGitHub = (u) => !!u && u.includes("opengraph.githubassets.com");
+
+export async function imagemDoGitHub(url) {
+  const m = url?.match(/^https:\/\/github\.com\/([^/]+)\/([^/#?]+)/i);
+  if (!m) return null;
+  const repo = `${m[1]}/${m[2]}`;
+  const { imagensDoReadme } = await import("./skills.mjs");
+  const cab = { Accept: "application/vnd.github.raw+json", "User-Agent": AGENTE };
+  if (process.env.GITHUB_TOKEN) cab.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  try {
+    const r = await fetch(`https://api.github.com/repos/${repo}/readme`, { headers: cab, signal: AbortSignal.timeout(12_000) });
+    if (!r.ok) return null;
+    const md = await r.text();
+    const branch = (await fetch(`https://api.github.com/repos/${repo}`, { headers: { ...cab, Accept: "application/vnd.github+json" } })
+      .then((x) => (x.ok ? x.json() : {}))
+      .catch(() => ({}))).default_branch || "main";
+    for (const img of imagensDoReadme(md, repo, branch)) {
+      if (/logo|icon|banner-small|avatar/i.test(img)) continue;
+      if (await imagemAbre(img)) return img;
+    }
+  } catch {
+    /* sem README legível: fica sem */
+  }
+  return null;
+}

@@ -2,7 +2,7 @@
    npm run midia            mostra o que faria, sem gravar
    npm run midia -- --gravar grava */
 
-import { imagemAbre, imagemDaWikipedia, lerMidia } from "./midia.mjs";
+import { capaAutomaticaGitHub, imagemAbre, imagemDaWikipedia, imagemDoGitHub, lerMidia } from "./midia.mjs";
 
 try {
   process.loadEnvFile();
@@ -30,6 +30,9 @@ for (const n of noticias) {
     n.image_url = null;
   }
   let imagem = n.image_url ? null : m.imagem && (await imagemAbre(m.imagem)) ? m.imagem : null;
+  if ((capaAutomaticaGitHub(n.image_url) || (!n.image_url && !imagem)) && /^https:\/\/github\.com\//.test(n.source_url)) {
+    imagem = (await imagemDoGitHub(n.source_url)) ?? imagem;
+  }
   if (!n.image_url && !imagem && n.topic_key) {
     imagem = noticias.find((o) => o.id !== n.id && o.topic_key === n.topic_key && o.image_url && o.image_url !== n.image_url)?.image_url ?? null;
   }

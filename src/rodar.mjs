@@ -12,7 +12,7 @@ import { iaLigada, redigir, usoReserva } from "./ia.mjs";
 import { bancoLigado, enfileirarSkills, gravar, marcar, naoVistos, recentes } from "./banco.mjs";
 import { prepararSkills } from "./skills.mjs";
 import { avisarBuscadores } from "./indexnow.mjs";
-import { imagemAbre, imagemDaWikipedia, lerMidia } from "./midia.mjs";
+import { capaAutomaticaGitHub, imagemAbre, imagemDaWikipedia, imagemDoGitHub, lerMidia } from "./midia.mjs";
 import { alertaLigado, avisarEdmar, mensagem, postarNoCanal, telegramLigado } from "./telegram.mjs";
 
 try {
@@ -230,6 +230,10 @@ async function comMidia(registros) {
         // só vale imagem que abre fora do site de origem (alguns jornais bloqueiam)
         if (r.image_url && !(await imagemAbre(r.image_url))) r.image_url = "";
         if (!r.image_url && m.imagem && (await imagemAbre(m.imagem))) r.image_url = m.imagem;
+        // projeto do GitHub: a capa automática (branca, só texto) dá lugar à imagem do README
+        if ((!r.image_url || capaAutomaticaGitHub(r.image_url)) && /^https:\/\/github\.com\//.test(r.source_url)) {
+          r.image_url = (await imagemDoGitHub(r.source_url)) ?? r.image_url;
+        }
         if (m.video) r.video_url = m.video;
       }),
     );
