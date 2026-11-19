@@ -12,6 +12,7 @@ import { iaLigada, redigir, usoReserva } from "./ia.mjs";
 import { bancoLigado, enfileirarSkills, gravar, marcar, naoVistos, recentes } from "./banco.mjs";
 import { prepararSkills } from "./skills.mjs";
 import { avisarBuscadores } from "./indexnow.mjs";
+import { imagemAbre, imagemDaWikipedia, lerMidia } from "./midia.mjs";
 import { alertaLigado, avisarEdmar, mensagem, postarNoCanal, telegramLigado } from "./telegram.mjs";
 
 try {
@@ -214,9 +215,40 @@ async function processar(lista) {
       tags: (Array.isArray(r.tags) ? r.tags : []).slice(0, 3).map((t) => limitar(String(t).toLowerCase(), 30)),
       published_at: it.publicado ?? new Date().toISOString(),
       oficial: it.oficial,
+      entidade: limitar(r.entidade, 60),
     });
   });
-  return { registros, vistos };
+  return { registros: await comMidia(registros), vistos };
+}
+
+/* Toda notícia sobe com imagem; vídeo quando a matéria tiver (ver midia.mjs). */
+async function comMidia(registros) {
+  for (let i = 0; i < registros.length; i += 6) {
+    await Promise.all(
+      registros.slice(i, i + 6).map(async (r) => {
+        const m = await lerMidia(r.source_url);
+        // só vale imagem que abre fora do site de origem (alguns jornais bloqueiam)
+        if (r.image_url && !(await imagemAbre(r.image_url))) r.image_url = "";
+        if (!r.image_url && m.imagem && (await imagemAbre(m.imagem))) r.image_url = m.imagem;
+        if (m.video) r.video_url = m.video;
+      }),
+    );
+  }
+  // sem imagem própria: a de outra matéria sobre o mesmo fato
+  let rec = [];
+  if (registros.some((r) => !r.image_url) && bancoLigado()) rec = (await recentes(HORAS_ASSUNTO).catch(() => [])) ?? [];
+  for (const r of registros.filter((x) => !x.image_url && x.topic_key)) {
+    const irma = [...registros, ...rec].find((o) => o !== r && o.topic_key === r.topic_key && o.image_url);
+    if (irma) r.image_url = irma.image_url;
+  }
+  // por último, a foto ou o logo da empresa/produto na Wikipédia
+  for (const r of registros.filter((x) => !x.image_url && x.entidade)) {
+    const wiki = await imagemDaWikipedia(r.entidade);
+    r.image_url = wiki && (await imagemAbre(wiki)) ? wiki : "";
+  }
+  const semImagem = registros.filter((r) => !r.image_url);
+  for (const r of semImagem) console.log(`  sem imagem, não publicada: ${r.title}`);
+  return registros.filter((r) => r.image_url);
 }
 
 async function superNoticiaETelegram(inseridos) {

@@ -6,7 +6,8 @@
   "scripts": {
     "rodar": "node src/rodar.mjs",
     "teste": "node src/rodar.mjs --teste",
-    "semear": "node src/rodar.mjs --semear"
+    "semear": "node src/rodar.mjs --semear",
+    "midia": "node src/completar-midia.mjs"
   },
   "engines": {
     "node": ">=22"

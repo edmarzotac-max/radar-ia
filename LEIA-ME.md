@@ -5,7 +5,8 @@ Raspador de notícias de inteligência artificial, tecnologia, games e internet.
 1. lê 23 feeds de notícias, a página da Anthropic, o Hacker News, as versões novas de 6 repositórios (Claude Code, Codex, Gemini CLI...) e os repositórios de IA novos que estão subindo em estrelas;
 2. joga fora o que já viu;
 3. a IA (OpenAI `gpt-5.4-mini`; sem a chave dela, o Gemini grátis) descarta oferta e fofoca, escolhe a editoria (IA, tecnologia, games ou internet) e escreve título, resumo e "por que importa" em português, com palavras próprias;
-4. grava no Supabase do site → aparece em edmarcastro.com.br/noticias;
+4. **imagem sempre** (regra do Edmar, 19/11): pega a imagem de destaque da própria matéria (a mesma que o Google mostra), confere se ela abre fora do site de origem, e, se faltar, usa a de outra matéria sobre o mesmo fato ou a foto/logo da empresa na Wikipédia. Sem imagem, a notícia não é publicada. Se a matéria tiver vídeo (YouTube, Vimeo ou mp4), ele vai junto e aparece no portal. Para completar as notícias antigas: `npm run midia -- --gravar`;
+5. grava no Supabase do site → aparece em edmarcastro.com.br/noticias;
 5. posta no canal do Telegram as de IA com nota 4 ou 5 e as das outras editorias só com nota 5 (no máximo 4 por rodada);
 6. **skills**: as skills novas de design, vídeo, motion e automação achadas no GitHub NÃO vão direto para o portal. O radar lê o README de cada uma, a IA escreve o rascunho da página (o que faz, para quem, como instalar, como usar) e põe na fila do painel `edmarcastro.com.br/admin/skills` (mesmo login das métricas). Lá o Edmar testa e escolhe Descartar ou Publicar (nota, uma frase e, se quiser, o vídeo do teste). Publicada, a página vai para `/skills/<nome>`, entra no sitemap e o Bing é avisado na hora;
 7. **avisa os buscadores**: cada notícia nova é mandada ao IndexNow (Bing, Yandex). O Google lê o `sitemap.xml` e o `sitemap-noticias.xml`;
