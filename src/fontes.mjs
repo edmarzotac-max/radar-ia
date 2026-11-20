@@ -6,7 +6,9 @@
    O foco é o que o Edmar acompanha (17/11/2026): Claude Code (automação e
    design), GPT (pesquisa e design), Figma, motion e edição de vídeo com IA e
    com código, ferramentas novas (tipo OpenBot), engenharia reversa e a
-   briga das ferramentas de design (Adobe), e IA nas placas de vídeo e games.
+   briga das ferramentas de design (Adobe).
+   20/11/2026: saiu games/placas de vídeo (não é onde o Edmar tem autoridade) e
+   entrou automação com IA para pequenas empresas (n8n, WhatsApp, atendimento).
 
    filtrar: "ia"    = a fonte fala de tudo; só entra o que tiver palavra de IA.
    filtrar: "nicho" = só entra o que bater com os temas do Edmar (PALAVRAS_NICHO).
@@ -38,18 +40,14 @@ export const FEEDS = [
   { nome: "Supabase", url: "https://supabase.com/changelog/rss.xml", categoria: "tecnologia", oficial: true },
   { nome: "GitHub", url: "https://github.blog/feed/", categoria: "tecnologia", oficial: true, filtrar: "nicho" },
 
-  // Placas de vídeo e games com IA
-  { nome: "The Verge", url: "https://www.theverge.com/rss/nvidia/index.xml", categoria: "games" },
-  // só placa de vídeo de consumidor e games (nada de data center)
-  { nome: "NVIDIA", url: "https://blogs.nvidia.com/feed/", categoria: "games", oficial: true, incluir: /geforce|rtx|dlss|gaming|game|jogo/i },
-  { nome: "Tom's Hardware", url: "https://www.tomshardware.com/feeds/all", categoria: "games", incluir: /dlss|fsr|frame gen|geforce|radeon|rtx 5|rtx 6|ai upscal/i },
+  // Automação com IA (n8n e afins)
+  { nome: "n8n", url: "https://blog.n8n.io/rss/", categoria: "ia", oficial: true },
 
   // Imprensa brasileira: só o que bate com os temas
   { nome: "Tecnoblog", url: "https://tecnoblog.net/feed/", categoria: "tecnologia", filtrar: "nicho" },
   { nome: "Olhar Digital", url: "https://olhardigital.com.br/feed/", categoria: "tecnologia", filtrar: "nicho" },
   { nome: "Canaltech", url: "https://canaltech.com.br/rss/", categoria: "tecnologia", filtrar: "nicho" },
   { nome: "Tecmundo", url: "https://rss.tecmundo.com.br/feed", categoria: "tecnologia", filtrar: "nicho" },
-  { nome: "Adrenaline", url: "https://adrenaline.com.br/feed/", categoria: "games", filtrar: "nicho" },
 ];
 
 /* A Anthropic não tem RSS: o radar lê a página de notícias. */
@@ -61,7 +59,7 @@ export const HACKER_NEWS = {
   pontosMinimos: 40,
   buscas: [
     "claude code", "anthropic", "chatgpt", "openai", "figma", "adobe", "remotion",
-    "motion graphics", "video editing", "reverse engineering", "mcp server", "dlss",
+    "motion graphics", "video editing", "reverse engineering", "mcp server", "n8n", "ai automation",
   ],
 };
 
@@ -73,6 +71,7 @@ export const REPOS_VIGIADOS = [
   "modelcontextprotocol/modelcontextprotocol",
   "remotion-dev/remotion",
   "heygen-com/hyperframes",
+  "n8n-io/n8n",
 ];
 
 /* GitHub: repositórios novos (até 7 dias) que estão subindo rápido. */
@@ -85,6 +84,8 @@ export const TOPICOS_GITHUB = [
   "remotion",
   "motion-graphics",
   "video-editing",
+  "n8n",
+  "whatsapp-bot",
 ];
 export const ESTRELAS_MINIMAS = 100;
 
@@ -120,7 +121,7 @@ export const PALAVRAS_NICHO = [
   "runway", "kling",
   // engenharia reversa e código aberto
   "engenharia reversa", "reverse engineer", "código aberto", "open source", "open-source",
-  // placas de vídeo e games com IA
-  "dlss", "fsr", "rtx", "geforce", "placa de vídeo", "placas de vídeo", "gpu", "ray tracing",
-  "frame generation", "geração de quadros", "upscaling", "nvidia", "radeon",
+  // automação com IA para pequenas empresas
+  "n8n", "zapier", "make.com", "whatsapp", "atendimento", "chatbot", "crm", "pequenas empresas",
+  "pequena empresa", "small business", "pme", "vendas", "workflow",
 ];

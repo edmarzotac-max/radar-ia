@@ -2,7 +2,9 @@ name: Radar IA
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    # 20/11/2026: a cada 30 min das 7h às 23h (Brasília); de madrugada, a cada 2 h (gasta menos)
+    - cron: "*/30 0-1,10-23 * * *"
+    - cron: "0 3,5,7,9 * * *"
   workflow_dispatch:
     inputs:
       modo:
