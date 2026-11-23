@@ -1,0 +1,56 @@
+name: Redes sociais (Threads e LinkedIn)
+
+# 7h (Brasília): escreve os posts do dia como RASCUNHO e avisa o Edmar por e-mail.
+# A cada 30 min (7h às 22h30): publica só o que o Edmar APROVOU em /admin/posts.
+on:
+  schedule:
+    - cron: "0 10 * * *"              # escrever (7h)
+    - cron: "*/30 10-23 * * *"        # publicar
+    - cron: "*/30 0-1 * * *"          # publicar (21h às 22h30)
+  workflow_dispatch:
+    inputs:
+      etapa:
+        description: "escrever, previa, publicar ou testar-publicacao"
+        required: true
+        default: "previa"
+
+concurrency:
+  group: redes
+  cancel-in-progress: false
+
+jobs:
+  rodar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Escrever ou publicar
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_CHAVE_PUBLICA: ${{ secrets.SUPABASE_CHAVE_PUBLICA }}
+          RADAR_TOKEN: ${{ secrets.RADAR_TOKEN }}
+          OPENAI_CHAVE: ${{ secrets.OPENAI_CHAVE }}
+          RESEND_CHAVE: ${{ secrets.RESEND_CHAVE }}
+          NEWSLETTER_DE: ${{ secrets.NEWSLETTER_DE }}
+          NEWSLETTER_TESTE: ${{ secrets.NEWSLETTER_TESTE }}
+          THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}
+          LINKEDIN_TOKEN: ${{ secrets.LINKEDIN_TOKEN }}
+          LINKEDIN_AUTOR: ${{ secrets.LINKEDIN_AUTOR }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          ETAPA="${{ github.event.inputs.etapa }}"
+          if [ -z "$ETAPA" ]; then
+            # agendado: o horário das 7h escreve; os de 30 em 30 min publicam
+            if [ "${{ github.event.schedule }}" = "0 10 * * *" ]; then ETAPA=escrever; else ETAPA=publicar; fi
+          fi
+          case "$ETAPA" in
+            escrever) node src/redes.mjs ;;
+            previa) node src/redes.mjs --previa ;;
+            publicar) node src/publicar-redes.mjs ;;
+            testar-publicacao) node src/publicar-redes.mjs --teste ;;
+          esac

@@ -205,3 +205,6 @@ export async function redigirSkill(skill, readme) {
     return null;
   }
 }
+
+/* Pedido avulso de JSON (usado pelas redes sociais e pelo fiscal). */
+export const pedirJSON = (conteudo, sistema) => chamarComReserva(conteudo, sistema);
