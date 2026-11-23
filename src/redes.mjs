@@ -53,8 +53,8 @@ function escolher(noticias, usados) {
     .filter((n) => n.category !== "games")
     .filter((n) => !FORA.test(`${n.title} ${n.summary}`))
     .filter((n) => TEMAS.test(`${n.title} ${n.summary} ${(n.tags || []).join(" ")}`))
-    // versão de software só se for grande; o resto precisa de nota 3+
-    .filter((n) => (n.kind === "lancamento" ? n.importance >= 4 : n.importance >= 3));
+    // nota de versão de software não rende conversa nas redes; o resto precisa de nota 3+
+    .filter((n) => n.kind !== "lancamento" && n.importance >= 3);
   // notícia de verdade primeiro, depois repositório e versão
   const peso = (n) => n.importance + (n.kind === "noticia" ? 1 : 0);
   return boas.sort((a, b) => peso(b) - peso(a)).slice(0, 2);
@@ -96,7 +96,7 @@ LINKEDIN (público: dono e gerente de pequena e média empresa; ângulo: o que a
 Responda só com JSON: {"threads":{"post":"..."},"linkedin":{"post":"..."}}`;
 
 const FISCAL = `Você é o fiscal dos posts do Edmar Castro. Você não reescreve nada: só dá nota e aponta o que corrigir.
-Confira em cada post: (1) fatos iguais aos da notícia, nada inventado; (2) sem link no corpo; (3) regras da rede (tamanho, gancho, pergunta no fim, hashtags só no LinkedIn); (4) proibidos: "site", tom de alarme, promessa de dinheiro, jargão, mais de 1 emoji; (5) soa como uma pessoa falando, não anúncio.
+Confira em cada post: (1) fatos SOBRE O PRODUTO OU A EMPRESA iguais aos da notícia, nada inventado (números, nomes, recursos). Sugestão de uso e opinião do Edmar ("dá para usar em…", "eu usaria para…", "isso ajuda quem…") NÃO é fato inventado: é permitido e desejado, desde que não afirme um recurso que a notícia não cita; (2) sem link no corpo; (3) regras da rede (tamanho, gancho, pergunta no fim, hashtags só no LinkedIn); (4) proibidos: "site", tom de alarme, promessa de dinheiro, jargão, mais de 1 emoji; (5) soa como uma pessoa falando, não anúncio.
 Responda só com JSON: {"threads":{"nota":0-10,"problemas":["..."]},"linkedin":{"nota":0-10,"problemas":["..."]}}. Nota 8 ou mais só sem problema dos itens 1, 2 e 4.`;
 
 async function escreverPosts(n, link) {
@@ -152,6 +152,7 @@ export async function principal() {
     const link = `${SITE}/noticias/${n.slug}`;
     const { posts, notas } = await escreverPosts(n, link);
     console.log(`\n[${n.importance}] ${n.title}\n  Threads ${notas?.threads?.nota}/10 · LinkedIn ${notas?.linkedin?.nota}/10`);
+    console.log(`  fiscal: ${JSON.stringify(notas)}`);
     if (PREVIA) console.log(`\n--- THREADS ---\n${posts.threads?.post}\n\n--- LINKEDIN ---\n${posts.linkedin?.post}\n`);
     const base = { news_id: n.id, news_slug: n.slug, news_title: n.title, image_url: n.image_url || "" };
     if (posts.threads?.post && (notas?.threads?.nota ?? 0) >= NOTA_MINIMA) {
