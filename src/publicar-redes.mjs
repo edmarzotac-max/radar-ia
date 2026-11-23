@@ -35,6 +35,18 @@ async function tokenThreads() {
   const [salvo] = (await rpc("radar_secret_get", { p_key: "threads_token" })) ?? [];
   let token = salvo?.value || process.env.THREADS_TOKEN;
   if (!token) return null;
+  // primeiro uso: o token do gerador da Meta é curto (1 h); troca pelo de 60 dias
+  if (!salvo && process.env.THREADS_APP_SECRET) {
+    const q = new URLSearchParams({ grant_type: "th_exchange_token", client_secret: process.env.THREADS_APP_SECRET, access_token: token });
+    const r = await fetch(`https://graph.threads.net/access_token?${q}`);
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.access_token) {
+      token = j.access_token;
+      if (!TESTE) await rpc("radar_secret_set", { p_key: "threads_token", p_value: token });
+      console.log("Threads: token trocado pelo de 60 dias.");
+      return token;
+    }
+  }
   const idade = salvo ? Date.now() - Date.parse(salvo.updated_at) : Infinity;
   if (idade > 7 * 86400_000) {
     // renova (o token precisa ter mais de 24 h); se falhar, segue com o atual

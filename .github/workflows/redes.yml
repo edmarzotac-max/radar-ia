@@ -39,6 +39,7 @@ jobs:
           NEWSLETTER_DE: ${{ secrets.NEWSLETTER_DE }}
           NEWSLETTER_TESTE: ${{ secrets.NEWSLETTER_TESTE }}
           THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}
+          THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
           LINKEDIN_TOKEN: ${{ secrets.LINKEDIN_TOKEN }}
           LINKEDIN_AUTOR: ${{ secrets.LINKEDIN_AUTOR }}
           SITE_URL: ${{ vars.SITE_URL }}
