@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       etapa:
-        description: "escrever, previa, publicar ou testar-publicacao"
+        description: "escrever, previa, publicar, testar-publicacao ou conferir"
         required: true
         default: "previa"
 
@@ -54,4 +54,5 @@ jobs:
             previa) node src/redes.mjs --previa ;;
             publicar) node src/publicar-redes.mjs ;;
             testar-publicacao) node src/publicar-redes.mjs --teste ;;
+            conferir) node src/publicar-redes.mjs --conferir ;;
           esac

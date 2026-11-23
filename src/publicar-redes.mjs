@@ -192,6 +192,14 @@ async function avisar(assunto, texto) {
 }
 
 export async function principal() {
+  // --conferir: só confere se o token do Threads funciona (não publica nada)
+  if (process.argv.includes("--conferir")) {
+    const tok = await tokenThreads();
+    if (!tok) throw new Error("THREADS_TOKEN não configurado.");
+    const eu = await th("me", { fields: "id,username" }, tok, "GET");
+    console.log(`Threads conectado como @${eu.username}.`);
+    return;
+  }
   const fila = (await rpc("radar_social_due", {})) ?? [];
   console.log(`Aprovados no horário: ${fila.length}`);
   if (!fila.length) return;
