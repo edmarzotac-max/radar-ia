@@ -1,10 +1,10 @@
 name: Redes sociais (Threads e LinkedIn)
 
-# 7h (Brasília): escreve os posts do dia como RASCUNHO e avisa o Edmar por e-mail.
 # A cada 30 min (7h às 22h30): publica só o que o Edmar APROVOU em /admin/posts.
+# 23/11: os posts a partir das notícias (etapa "escrever", 7h) ficaram desligados:
+# o Edmar prefere adaptar posts que já estão em alta (varredura). Continua no manual.
 on:
   schedule:
-    - cron: "0 10 * * *"              # escrever (7h)
     - cron: "*/30 10-23 * * *"        # publicar
     - cron: "*/30 0-1 * * *"          # publicar (21h às 22h30)
   workflow_dispatch:
