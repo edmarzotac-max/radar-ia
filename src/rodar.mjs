@@ -8,12 +8,12 @@
 import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { coletarTudo } from "./coletar.mjs";
-import { iaLigada, redigir, usoReserva } from "./ia.mjs";
+import { iaLigada, redigir, redigirMateria, usoReserva } from "./ia.mjs";
 import { bancoLigado, definirProdutos, enfileirarSkills, gravar, marcar, naoVistos, recentes } from "./banco.mjs";
 import { afiliadosLigado, produtosShopee } from "./afiliados.mjs";
 import { prepararSkills } from "./skills.mjs";
 import { avisarBuscadores } from "./indexnow.mjs";
-import { capaAutomaticaGitHub, imagemAbre, imagemDaWikipedia, imagemDoGitHub, lerMidia } from "./midia.mjs";
+import { capaAutomaticaGitHub, imagemAbre, imagemDaWikipedia, imagemDoGitHub, lerMateria, lerMidia } from "./midia.mjs";
 import { alertaLigado, avisarEdmar, mensagem, postarNoCanal, telegramLigado } from "./telegram.mjs";
 
 try {
@@ -237,7 +237,7 @@ async function processar(lista) {
       produto: limitar(r.produto, 60),
     });
   });
-  return { registros: await comMidia(registros), vistos };
+  return { registros: await comMateria(await comMidia(registros)), vistos };
 }
 
 /* Toda notícia sobe com imagem; vídeo quando a matéria tiver (ver midia.mjs). */
@@ -280,6 +280,25 @@ async function comMidia(registros) {
   const semImagem = registros.filter((r) => !r.image_url);
   for (const r of semImagem) console.log(`  sem imagem, não publicada: ${r.title}`);
   return registros.filter((r) => r.image_url);
+}
+
+/* Nota 4 e 5: matéria longa, em seções com imagem ou vídeo da própria fonte
+   (pedido do Edmar em 25/11). As outras continuam curtas. Se a IA falhar, a
+   notícia sai curta mesmo. */
+const NOTA_MATERIA = 4;
+async function comMateria(registros) {
+  for (const r of registros.filter((x) => x.importance >= NOTA_MATERIA)) {
+    const { texto, midias } = await lerMateria(r.source_url);
+    if (texto.length < 600) continue; // página sem texto legível (só script): fica curta
+    // a mídia do topo não se repete dentro da matéria
+    const resto = midias.filter((m) => m.url !== r.video_url && m.url !== r.image_url);
+    const corpo = await redigirMateria(r, texto, resto);
+    if (corpo) {
+      r.body = corpo;
+      console.log(`  matéria longa: ${r.title} (${corpo.secoes.length} seções, ${corpo.secoes.filter((s) => s.midia).length} mídias)`);
+    }
+  }
+  return registros;
 }
 
 async function superNoticiaETelegram(inseridos) {

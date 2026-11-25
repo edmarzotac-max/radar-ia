@@ -50,7 +50,9 @@ export function normalizarVideo(u) {
   const yt = u.match(/(?:youtube(?:-nocookie)?\.com\/(?:embed\/|watch\?v=|shorts\/|v\/)|youtu\.be\/)([\w-]{11})/i);
   if (yt) return `https://www.youtube.com/watch?v=${yt[1]}`;
   const vm = u.match(/vimeo\.com\/(?:video\/)?(\d{6,})/i);
-  if (vm) return `https://player.vimeo.com/video/${vm[1]}`;
+  // vídeo não listado do Vimeo só abre com o código h= junto
+  const h = u.match(/[?&]h=([0-9a-f]{6,})/i)?.[1];
+  if (vm) return `https://player.vimeo.com/video/${vm[1]}${h ? `?h=${h}` : ""}`;
   if (/^https:\/\/[^\s"']+\.(mp4|webm)(\?[^\s"']*)?$/i.test(u)) return u;
   return null;
 }
@@ -168,4 +170,125 @@ export async function imagemDoGitHub(url) {
     /* sem README legível: fica sem */
   }
   return null;
+}
+
+/* ------------------------ matéria longa (nota 4 e 5) ------------------------
+   Pedido do Edmar em 25/11, a partir da matéria do Images 2.6 da OpenAI: a
+   matéria grande vira uma sequência para ver, com imagem ou vídeo a cada seção.
+   lerMateria abre a página da fonte e devolve o texto corrido e as mídias que
+   estão dentro da matéria (na ordem em que aparecem). */
+
+const tirarTags = (h) =>
+  decodificar(
+    h
+      .replace(/<(script|style|noscript|svg|nav|header|footer|aside|form|figure)[^>]*>[\s\S]*?<\/\1>/gi, " ")
+      .replace(/<\/(p|h[1-6]|li|blockquote|div|section)>/gi, "\n")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n))),
+  )
+    .replace(/[ \t]+/g, " ")
+    .replace(/\s*\n\s*/g, "\n")
+    .replace(/\n{2,}/g, "\n")
+    .trim();
+
+/* O trecho da página que é a matéria: <article>, senão <main>, senão o <body>. */
+function trechoDaMateria(html) {
+  const art = [...html.matchAll(/<article[\s>][\s\S]*?<\/article>/gi)].map((m) => m[0]).sort((a, b) => b.length - a.length)[0];
+  if (art && art.length > 1500) return art;
+  const main = html.match(/<main[\s>][\s\S]*<\/main>/i)?.[0];
+  if (main && main.length > 1500) return main;
+  return html.match(/<body[\s>][\s\S]*<\/body>/i)?.[0] ?? html;
+}
+
+/* Maior imagem de um srcset (o último item costuma ser o maior). */
+function doSrcset(s) {
+  const itens = s.split(",").map((x) => x.trim().split(/\s+/));
+  let melhor = null;
+  let maior = 0;
+  for (const [u, w] of itens) {
+    const n = parseInt(w) || 1;
+    if (u && n >= maior) {
+      maior = n;
+      melhor = u;
+    }
+  }
+  return melhor;
+}
+
+export async function lerMateria(url) {
+  let html;
+  try {
+    const r = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36", Accept: "text/html" },
+      signal: AbortSignal.timeout(15_000),
+      redirect: "follow",
+    });
+    if (!r.ok) return { texto: "", midias: [] };
+    html = (await r.text()).slice(0, 1_500_000);
+  } catch {
+    return { texto: "", midias: [] };
+  }
+  let trecho = trechoDaMateria(html);
+  // corta o "continue lendo" / "leia também" do fim (capas de outras matérias)
+  const fim = trecho.search(/>\s*(Continuar lendo|Continue lendo|Leia também|Leia mais|Veja também|Mais lidas|Related( articles| stories)?|Keep reading|Read more|More from)\s*</i);
+  if (fim > 1500) trecho = trecho.slice(0, fim);
+  const texto = tirarTags(trecho).slice(0, 9000);
+
+  const midias = [];
+  const vistos = new Set();
+  const por = (tipo, bruto, legenda) => {
+    if (!bruto || midias.length >= 14) return;
+    const abs = absoluto(bruto, url);
+    if (!abs || abs.length > 600 || vistos.has(abs)) return;
+    if (tipo === "video") {
+      const v = normalizarVideo(abs);
+      if (!v || vistos.has(v)) return;
+      vistos.add(v);
+      midias.push({ tipo: "video", url: v, legenda });
+      return;
+    }
+    if (NAO_E_CAPA.test(abs) || /\.svg(\?|$)|data:/i.test(abs)) return;
+    vistos.add(abs);
+    midias.push({ tipo: "imagem", url: abs, legenda });
+  };
+
+  // imagens, vídeos e players na ordem em que aparecem na matéria
+  const re = /<img\b[^>]*>|<video\b[\s\S]*?<\/video>|<iframe\b[^>]*>|<figcaption[^>]*>[\s\S]*?<\/figcaption>/gi;
+  for (const m of trecho.matchAll(re)) {
+    const tag = m[0];
+    if (/^<figcaption/i.test(tag)) {
+      // legenda da figura: vale para a última mídia sem legenda
+      const ult = midias.at(-1);
+      if (ult && !ult.legenda) ult.legenda = tirarTags(tag).slice(0, 220);
+      continue;
+    }
+    const alt = decodificar(tag.match(/\b(?:alt|aria-label|title)=["']([^"']*)["']/i)?.[1] ?? "").slice(0, 220);
+    if (/^<img/i.test(tag)) {
+      const larg = parseInt(tag.match(/\bwidth=["']?(\d+)/i)?.[1] ?? "0");
+      if (larg && larg < 300) continue; // ícone, avatar, logo pequeno
+      const srcset = tag.match(/\b(?:data-srcset|srcset)=["']([^"']+)["']/i)?.[1];
+      const src = (srcset && doSrcset(srcset)) || tag.match(/\b(?:data-src|data-lazy-src|src)=["']([^"']+)["']/i)?.[1];
+      por("imagem", src, alt);
+    } else if (/^<video/i.test(tag)) {
+      const src = tag.match(/\bsrc=["']([^"']+\.(?:mp4|webm)[^"']*)["']/i)?.[1];
+      por("video", src, alt);
+    } else {
+      por("video", tag.match(/\bsrc=["']([^"']+)["']/i)?.[1], alt);
+    }
+  }
+
+  // players que a página monta por script (ex.: OpenAI guarda o Vimeo no JSON da página)
+  const BS = String.fromCharCode(92); // barra invertida do JSON escapado
+  const sem = html.split(BS + "u0026").join("&").split(BS + "/").join("/").split(BS + String.fromCharCode(34)).join(String.fromCharCode(34));
+  for (const m of sem.matchAll(/https:\/\/(?:player\.vimeo\.com\/video\/\d{6,}[^"'\s\<]*|www\.youtube(?:-nocookie)?\.com\/embed\/[\w-]{11})/g)) {
+    const antes = sem.slice(Math.max(0, m.index - 400), m.index);
+    const leg = [...antes.matchAll(/"(?:altText|alt|caption|title|videoEmbedTitle)"\s*:\s*"([^"]{4,220})/g)].at(-1)?.[1] ?? "";
+    por("video", m[0], decodificar(leg));
+  }
+
+  // só fica imagem que abre fora do site de origem
+  const ok = await Promise.all(midias.map((m) => (m.tipo === "imagem" ? imagemAbre(m.url) : true)));
+  return { texto, midias: midias.filter((_, i) => ok[i]).slice(0, 10) };
 }
